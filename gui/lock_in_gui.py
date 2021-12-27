@@ -18,6 +18,7 @@ along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
+import logging
 
 import numpy as np
 import os
@@ -56,8 +57,11 @@ class LockInGui(GUIBase):
     # declare connectors
     lockinlogic = Connector(interface='GenericLogic')
 
-    # sigFocusStart = QtCore.Signal()
-    # sigFocusStop = QtCore.Signal()
+    sigStartCounter = QtCore.Signal()
+    sigStopCounter = QtCore.Signal()
+    sigStartRecording = QtCore.Signal()
+    sigStopRecording = QtCore.Signal()
+
     # sigAcquisitionStart = QtCore.Signal()
     # sigAcquisitionStop = QtCore.Signal()
 
@@ -71,9 +75,14 @@ class LockInGui(GUIBase):
         super().__init__(config=config, **kwargs)
         self.log.debug('The following configuration was found.')
 
+        self._mw = None
+
         # checking for the right configuration
         for key in config.keys():
             self.log.info('{0}: {1}'.format(key, config[key]))
+
+    def test_signal(self):
+        self.log.info("test")
 
     def on_activate(self):
         """ Definition and initialisation of the GUI.
@@ -84,6 +93,9 @@ class LockInGui(GUIBase):
         # Configuring the dock widgets
         # Use the inherited class 'CounterMainWindow' to create the GUI window
         self._mw = LockInMainWindow()
+
+        # Settings default parameters
+        self.update_status()
 
         # Setup dock widgets
         self._mw.centralwidget.hide()
@@ -102,126 +114,19 @@ class LockInGui(GUIBase):
         self._plot_spectrum.setLabel('bottom', 'x-axis (Pixels)')
         self._plot_spectrum.setLabel('left', 'Intensity (Counts)')
 
-        # # change font size
-        # font = QtGui.QFont()
-        # font.setPixelSize(16)
-        # self._sw.getAxis("left").tickFont = font
-        # self._sw.getAxis("left").setStyle(tickTextOffset=6)
-        # self._sw.getAxis("bottom").tickFont = font
-        # self._sw.getAxis("bottom").setStyle(tickTextOffset=6)
-        # self._sw.getAxis("top").tickFont = font
-        # self._sw.getAxis("top").setStyle(tickTextOffset=6)
-        # self._sw.getAxis("right").tickFont = font
-        # self._sw.getAxis("right").setStyle(tickTextOffset=6)
-        #
-        # # image (New version with pg.ImageView)
-        # self._iw = pg.ImageView(view=pg.PlotItem())
-        # self._mw.widget = QtGui.QWidget()
-        # self._mw.widget.setLayout(QtGui.QHBoxLayout())
-        # self._mw.widget.layout().addWidget(self._iw)
-        # self._mw.image2DockWidget.setWidget(self._iw)
-        #
-        # self._iw.view.showAxis('top')
-        # self._iw.view.showAxis('right')
-        #
-        # self._iw.view.setLabel('bottom', 'x-axis (Pixels)')
-        # self._iw.view.setLabel('left', 'y-axis (Pixels)')
-        #
-        # # change font size
-        # font = QtGui.QFont()
-        # font.setPixelSize(16)
-        # self._iw.view.getAxis("left").tickFont = font
-        # self._iw.view.getAxis("left").setStyle(tickTextOffset=6)
-        # self._iw.view.getAxis("bottom").tickFont = font
-        # self._iw.view.getAxis("bottom").setStyle(tickTextOffset=6)
-        # self._iw.view.getAxis("top").tickFont = font
-        # self._iw.view.getAxis("top").setStyle(tickTextOffset=6)
-        # self._iw.view.getAxis("right").tickFont = font
-        # self._iw.view.getAxis("right").setStyle(tickTextOffset=6)
-        #
-        # # make correct button and checkboxes states
-        # self._mw.focus_Action.setChecked(False)
-        #
-        # if self._ccd_logic._mode == '1D':  # bin y
-        #     self._mw.bin_checkBox.setChecked(True)
-        # else:
-        #     self._mw.bin_checkBox.setChecked(False)
-        #
-        # if self._ccd_logic._x_flipped:  # flip x
-        #     self._mw.flip_x_checkBox.setChecked(True)
-        # else:
-        #     self._mw.flip_x_checkBox.setChecked(False)
-        #
-        # # load spinboxes states
-        # self._mw.focus_doubleSpinBox.setValue(self._ccd_logic._focus_exposure)
-        # self._mw.acquisition_doubleSpinBox.setValue(self._ccd_logic._acquisition_exposure)
-        # self._mw.constant_background_spinBox.setValue(self._ccd_logic._constant_background)
-        # self._mw.ccd_offset_nm_doubleSpinBox.setValue(self._ccd_logic._ccd_offset_nm)
-        #
-        # self._mw.laser_power_mW_doubleSpinBox.setValue(self._ccd_logic._laser_power_mW)
-        # self._mw.magnetic_field_T_doubleSpinBox.setValue(self._ccd_logic._magnetic_field_T)
-        # self._mw.arbitrary_tag_lineEdit.setText(self._ccd_logic._arbitrary_tag)
-        #
-        # self._mw.roi_x0_spinBox.setValue(self._ccd_logic._roi[0])
-        # self._mw.roi_x_max_spinBox.setValue(self._ccd_logic._roi[1] + self._ccd_logic._roi[0])  # convert to coordinates from width
-        # self._mw.roi_y0_spinBox.setValue(self._ccd_logic._roi[3])
-        # self._mw.roi_y_max_spinBox.setValue(self._ccd_logic._roi[4] + self._ccd_logic._roi[3])
-        #
-        # #####################
-        # # Connecting user interactions
-        # #####################
-        # # Actions/buttons
-        # self._mw.focus_Action.triggered.connect(self.focus_clicked)  # Start/stop focus mode
-        # self._mw.acquisition_Action.triggered.connect(self.acquisition_clicked)  # Start single spectra/image
-        # self._mw.save_Action.triggered.connect(self.save_clicked)
-        #
-        # # Boxes
-        # # Time and number
-        # self._mw.focus_doubleSpinBox.editingFinished.connect(self.focus_time_changed)
-        # self._mw.acquisition_doubleSpinBox.editingFinished.connect(self.acquisition_time_changed)
-        #
-        # # ROI and chip spinboxes and checkbox
-        # self._mw.roi_x0_spinBox.editingFinished.connect(self.roi_changed)
-        # self._mw.roi_x_max_spinBox.editingFinished.connect(self.roi_changed)
-        # self._mw.roi_y0_spinBox.editingFinished.connect(self.roi_changed)
-        # self._mw.roi_y_max_spinBox.editingFinished.connect(self.roi_changed)
-        #
-        # self._mw.bin_checkBox.stateChanged.connect(self.bin_clicked)
-        # self._mw.flip_x_checkBox.stateChanged.connect(self.flip_clicked)
-        #
-        # self._mw.ccd_offset_nm_doubleSpinBox.editingFinished.connect(self.ccd_offset_changed)
-        #
-        # # Background
-        # self._mw.constant_background_spinBox.editingFinished.connect(self.constant_background_changed)
-        #
-        # # Some metainformation
-        # self._mw.laser_power_mW_doubleSpinBox.editingFinished.connect(self.laser_power_changed)
-        # self._mw.magnetic_field_T_doubleSpinBox.editingFinished.connect(self.magnetic_field_changed)
-        # self._mw.arbitrary_tag_lineEdit.editingFinished.connect(self.arbitrary_tag_changed)
-        #
-        # # Adc and shutter stuff
-        # self.fill_interface_values()
-        # self._mw.adc_quality_comboBox.currentIndexChanged.connect(self.adc_quality_changed)
-        # self._mw.adc_analog_gain_comboBox.currentIndexChanged.connect(self.adc_analog_gain_changed)
-        # self._mw.shutter_timing_mode_comboBox.currentIndexChanged.connect(self.shutter_timing_mode_changed)
-        # self._mw.adc_speed_comboBox.currentIndexChanged.connect(self.adc_speed_changed)
-        # self._mw.vertical_shift_rate_comboBox.currentIndexChanged.connect(self.vertical_shift_rate_changed)
-        #
-        # # Comboboxes
-        # self._mw.energy_selector_comboBox.currentIndexChanged.connect(self.energy_unit_changed)
-        # self._mw.counts_selector_comboBox.currentIndexChanged.connect(self.counts_unit_changed)
-        #
-        # #####################
-        # # starting the physical measurement
-        # self.sigFocusStart.connect(self._ccd_logic.start_focus)
-        # self.sigFocusStop.connect(self._ccd_logic.stop_focus, QtCore.Qt.DirectConnection)
-        # self.sigAcquisitionStart.connect(self._ccd_logic.start_single_acquisition)
-        # self.sigAcquisitionStop.connect(self._ccd_logic.stop_acquisition, QtCore.Qt.DirectConnection)
-        #
-        # self._ccd_logic.sigUpdateDisplay.connect(self.update_data)
-        # self._ccd_logic.sigAcquisitionFinished.connect(self.acquisition_finished)
-        #
-        # self._ccd_logic.sigRepeat.connect(self.update_data)
+        self._mw.start_trace_Action.triggered.connect(self.start_clicked)
+
+        self.sigStartCounter.connect(
+            self._lock_in_logic.start_reading, QtCore.Qt.QueuedConnection)
+        self.sigStopCounter.connect(
+            self._lock_in_logic.stop_reading, QtCore.Qt.QueuedConnection)
+        self.sigStartRecording.connect(
+            self._lock_in_logic.start_recording, QtCore.Qt.QueuedConnection)
+        self.sigStopRecording.connect(
+            self._lock_in_logic.stop_recording, QtCore.Qt.QueuedConnection)
+
+        self._lock_in_logic.sigStatusChanged.connect(
+            self.update_status, QtCore.Qt.QueuedConnection)
 
     def show(self):
         """ Make window visible and put it above all other windows """
@@ -233,8 +138,47 @@ class LockInGui(GUIBase):
         """ Deactivate the module properly """
         # FIXME: !
         # self._ccd_logic.stop_focus()
+        self.sigStartCounter.disconnect()
+        self.sigStopCounter.disconnect()
         self._mw.close()
-    #
+
+    def update_status(self, running=None, recording=None):
+        """
+        Handling adjust and measurement
+        """
+
+        if running is None:
+            running = self._lock_in_logic.module_state() == 'locked'
+        if recording is None:
+            recording = self._lock_in_logic.data_recording_active
+
+        self._mw.start_trace_Action.setChecked(running)
+        self._mw.start_trace_Action.setText('Stop trace' if running else 'Start trace')
+
+        self._mw.record_trace_Action.setChecked(recording)
+        self._mw.record_trace_Action.setText('Save recorded' if recording else 'Start recording')
+
+        self._mw.start_trace_Action.setEnabled(True)
+        self._mw.record_trace_Action.setEnabled(running)
+
+    @QtCore.Slot()
+    def start_clicked(self):
+        """
+        Handling the Start button to stop and restart the counter.
+        """
+        self._mw.start_trace_Action.setEnabled(False)
+        self._mw.record_trace_Action.setEnabled(False)
+
+        if self._mw.start_trace_Action.isChecked():
+            self.sigStartCounter.emit()
+        else:
+            self.sigStopCounter.emit()
+        pass
+
+    def update_data(self, data=None):
+        if data is not None:
+            self.curves[channel].setData(y=y_arr, x=data_time)
+
     # def update_data(self):
     #     """ The function that grabs the data and sends it to the plot.
     #         If the data is 1D send it to spectrum widget, if not to image.

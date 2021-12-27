@@ -123,7 +123,7 @@ class thorlabsDelay(Base,MotorInterface):
         DeviceManagerCLI.GetDeviceList()
         self._controller_handle = Thorlabs.MotionControl.Benchtop.BrushlessMotorCLI \
             .BenchtopBrushlessMotor.CreateBenchtopBrushlessMotor(str(self._serial_number_controller))
-        # time.sleep(2)
+        time.sleep(2)
         self._controller_handle.Connect(str(self._serial_number_controller))
         self._channel_handle = self._controller_handle.GetChannel(1)
         time.sleep(1)  # needed to wait a bit to connect to channel

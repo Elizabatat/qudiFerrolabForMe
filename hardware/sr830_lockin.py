@@ -53,12 +53,13 @@ class sr830LockIn(Base, SimpleDataInterface):
         self.rm = visa.ResourceManager()
         try:
             self._lock_in_handle = self.rm.open_resource(self._com_port_lock_in,
-                                                           baud_rate = 19200,
-                                                           parity=0,
-                                                           write_termination='\r',
-                                                           read_termination='\r')
+                                                         baud_rate=9600,
+                                                         parity=0,
+                                                         write_termination='\r',
+                                                         read_termination='\r'
+                                                         )
             time.sleep(0.3)
-            self.log.info("All good, lock-in is conected")
+            self.log.info("All good, lock-in is connected!")
         except:
             self.log.warning('Cannot connect to lock-in! Check ports.')
 
@@ -68,8 +69,8 @@ class sr830LockIn(Base, SimpleDataInterface):
         self._lock_in_handle.close()
 
     def getData(self):
-        """ Returns X, Y, R, Theta as an array of floats. """
-        _data = self._lock_in_handle.query("snap?1,2,3,4")
+        """ Returns X and Y from the first channel as an array of floats. """
+        _data = self._lock_in_handle.query("snap?1,2")
         return list(map(float, _data.split(',')))
 
     def getChannels(self):

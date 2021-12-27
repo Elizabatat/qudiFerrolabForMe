@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>741</width>
-    <height>599</height>
+    <width>400</width>
+    <height>355</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,8 +19,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>741</width>
-     <height>20</height>
+     <width>400</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>
@@ -42,14 +42,17 @@
     <bool>false</bool>
    </attribute>
    <addaction name="separator"/>
-   <addaction name="home_Action"/>
+   <addaction name="scan_Action"/>
+   <addaction name="stop_Action"/>
    <addaction name="separator"/>
+   <addaction name="home_Action"/>
+   <addaction name="update_Action"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
    <property name="minimumSize">
     <size>
-     <width>540</width>
-     <height>500</height>
+     <width>380</width>
+     <height>280</height>
     </size>
    </property>
    <attribute name="dockWidgetArea">
@@ -59,21 +62,21 @@
     <widget class="QDoubleSpinBox" name="delay_position_mm_doubleSpinBox">
      <property name="geometry">
       <rect>
-       <x>240</x>
+       <x>140</x>
        <y>40</y>
-       <width>160</width>
-       <height>60</height>
+       <width>100</width>
+       <height>22</height>
       </rect>
      </property>
      <property name="minimumSize">
       <size>
-       <width>160</width>
-       <height>60</height>
+       <width>100</width>
+       <height>22</height>
       </size>
      </property>
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>8</pointsize>
       </font>
      </property>
      <property name="buttonSymbols">
@@ -86,144 +89,153 @@
       <double>1000.000000000000000</double>
      </property>
     </widget>
-    <widget class="QDoubleSpinBox" name="high_constrain_mm_doubleSpinBox">
+    <widget class="QDoubleSpinBox" name="end_scan_mm_doubleSpinBox">
      <property name="geometry">
       <rect>
-       <x>470</x>
+       <x>260</x>
        <y>40</y>
-       <width>160</width>
-       <height>60</height>
+       <width>100</width>
+       <height>22</height>
       </rect>
      </property>
      <property name="minimumSize">
       <size>
-       <width>160</width>
-       <height>60</height>
+       <width>100</width>
+       <height>22</height>
       </size>
      </property>
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>8</pointsize>
       </font>
      </property>
      <property name="readOnly">
-      <bool>true</bool>
+      <bool>false</bool>
+     </property>
+     <property name="decimals">
+      <number>4</number>
      </property>
     </widget>
-    <widget class="QDoubleSpinBox" name="low_constrain_mm_doubleSpinBox">
+    <widget class="QDoubleSpinBox" name="start_scan_mm_doubleSpinBox">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>20</x>
        <y>40</y>
-       <width>160</width>
-       <height>60</height>
+       <width>100</width>
+       <height>22</height>
       </rect>
      </property>
      <property name="minimumSize">
       <size>
-       <width>160</width>
-       <height>60</height>
+       <width>62</width>
+       <height>22</height>
       </size>
      </property>
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>8</pointsize>
       </font>
      </property>
      <property name="readOnly">
-      <bool>true</bool>
+      <bool>false</bool>
+     </property>
+     <property name="decimals">
+      <number>4</number>
+     </property>
+     <property name="maximum">
+      <double>1000.000000000000000</double>
      </property>
     </widget>
-    <widget class="QDoubleSpinBox" name="delay_position_mm_doubleSpinBox_2">
+    <widget class="QDoubleSpinBox" name="step_mm_doubleSpinBox">
      <property name="geometry">
       <rect>
-       <x>240</x>
-       <y>140</y>
-       <width>160</width>
-       <height>60</height>
+       <x>140</x>
+       <y>120</y>
+       <width>100</width>
+       <height>22</height>
       </rect>
      </property>
      <property name="minimumSize">
       <size>
-       <width>160</width>
-       <height>60</height>
+       <width>100</width>
+       <height>22</height>
       </size>
      </property>
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>8</pointsize>
       </font>
      </property>
+     <property name="decimals">
+      <number>4</number>
+     </property>
+     <property name="maximum">
+      <double>200.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>1.000000000000000</double>
+     </property>
     </widget>
-    <widget class="QDoubleSpinBox" name="delay_position_mm_doubleSpinBox_3">
+    <widget class="QDoubleSpinBox" name="wait_time_s_doubleSpinBox">
      <property name="geometry">
       <rect>
-       <x>470</x>
-       <y>140</y>
-       <width>160</width>
-       <height>60</height>
+       <x>260</x>
+       <y>120</y>
+       <width>100</width>
+       <height>22</height>
       </rect>
      </property>
      <property name="minimumSize">
       <size>
-       <width>160</width>
-       <height>60</height>
+       <width>100</width>
+       <height>22</height>
       </size>
      </property>
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>8</pointsize>
       </font>
      </property>
+     <property name="decimals">
+      <number>3</number>
+     </property>
+     <property name="maximum">
+      <double>60.000000000000000</double>
+     </property>
+     <property name="value">
+      <double>1.000000000000000</double>
+     </property>
     </widget>
-    <widget class="QDoubleSpinBox" name="delay_position_mm_doubleSpinBox_4">
+    <widget class="QSpinBox" name="number_points_spinBox">
      <property name="geometry">
       <rect>
-       <x>470</x>
-       <y>240</y>
-       <width>160</width>
-       <height>60</height>
+       <x>20</x>
+       <y>120</y>
+       <width>100</width>
+       <height>22</height>
       </rect>
      </property>
      <property name="minimumSize">
       <size>
-       <width>160</width>
-       <height>60</height>
+       <width>100</width>
+       <height>22</height>
       </size>
      </property>
      <property name="font">
       <font>
-       <pointsize>12</pointsize>
+       <pointsize>8</pointsize>
       </font>
      </property>
-    </widget>
-    <widget class="QSpinBox" name="spinBox">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>140</y>
-       <width>161</width>
-       <height>61</height>
-      </rect>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>160</width>
-       <height>60</height>
-      </size>
-     </property>
-     <property name="font">
-      <font>
-       <pointsize>12</pointsize>
-      </font>
+     <property name="value">
+      <number>1</number>
      </property>
     </widget>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="start_scan_mm_label">
      <property name="geometry">
       <rect>
-       <x>8</x>
+       <x>20</x>
        <y>0</y>
-       <width>161</width>
+       <width>100</width>
        <height>31</height>
       </rect>
      </property>
@@ -239,12 +251,12 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_2">
+    <widget class="QLabel" name="delay_position_mm_label">
      <property name="geometry">
       <rect>
-       <x>240</x>
+       <x>140</x>
        <y>0</y>
-       <width>161</width>
+       <width>100</width>
        <height>31</height>
       </rect>
      </property>
@@ -260,12 +272,12 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_3">
+    <widget class="QLabel" name="end_scan_mm_label">
      <property name="geometry">
       <rect>
-       <x>470</x>
+       <x>260</x>
        <y>0</y>
-       <width>161</width>
+       <width>100</width>
        <height>31</height>
       </rect>
      </property>
@@ -281,12 +293,12 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_4">
+    <widget class="QLabel" name="number_points_spinBox_label">
      <property name="geometry">
       <rect>
-       <x>10</x>
-       <y>100</y>
-       <width>161</width>
+       <x>20</x>
+       <y>80</y>
+       <width>100</width>
        <height>31</height>
       </rect>
      </property>
@@ -296,18 +308,18 @@
       </font>
      </property>
      <property name="text">
-      <string>N at each position</string>
+      <string>Number of points</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_5">
+    <widget class="QLabel" name="step_mm_doubleSpinBox_label">
      <property name="geometry">
       <rect>
-       <x>240</x>
-       <y>100</y>
-       <width>161</width>
+       <x>140</x>
+       <y>80</y>
+       <width>100</width>
        <height>31</height>
       </rect>
      </property>
@@ -323,12 +335,12 @@
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_6">
+    <widget class="QLabel" name="wait_time_s_label">
      <property name="geometry">
       <rect>
-       <x>470</x>
-       <y>100</y>
-       <width>161</width>
+       <x>260</x>
+       <y>80</y>
+       <width>100</width>
        <height>31</height>
       </rect>
      </property>
@@ -338,18 +350,18 @@
       </font>
      </property>
      <property name="text">
-      <string>Wait at each position (s)</string>
+      <string>Wait time (s)</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
      </property>
     </widget>
-    <widget class="QLabel" name="label_7">
+    <widget class="QLabel" name="number_of_scans_label">
      <property name="geometry">
       <rect>
-       <x>470</x>
-       <y>200</y>
-       <width>161</width>
+       <x>20</x>
+       <y>160</y>
+       <width>100</width>
        <height>31</height>
       </rect>
      </property>
@@ -359,7 +371,47 @@
       </font>
      </property>
      <property name="text">
-      <string>Relax before measure (s)</string>
+      <string>Number of scans</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QSpinBox" name="number_scans_spinBox">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>200</y>
+       <width>100</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>100</width>
+       <height>22</height>
+      </size>
+     </property>
+     <property name="value">
+      <number>1</number>
+     </property>
+    </widget>
+    <widget class="QLabel" name="full_time_scan_label">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>160</y>
+       <width>121</width>
+       <height>31</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Full scan will take xx s</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
@@ -386,6 +438,39 @@
    </property>
    <property name="iconVisibleInMenu">
     <bool>true</bool>
+   </property>
+  </action>
+  <action name="update_Action">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/oxygen/22x22/view-refresh.png</normaloff>../../artwork/icons/oxygen/22x22/view-refresh.png</iconset>
+   </property>
+   <property name="text">
+    <string>Update position</string>
+   </property>
+  </action>
+  <action name="scan_Action">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/start-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/start-counter.png</iconset>
+   </property>
+   <property name="text">
+    <string>Do scan</string>
+   </property>
+   <property name="toolTip">
+    <string>Performs requested scan from start to end</string>
+   </property>
+  </action>
+  <action name="stop_Action">
+   <property name="icon">
+    <iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/stop-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/stop-counter.png</iconset>
+   </property>
+   <property name="text">
+    <string>Stop</string>
+   </property>
+   <property name="toolTip">
+    <string>Stops scan without saving anything</string>
    </property>
   </action>
  </widget>
