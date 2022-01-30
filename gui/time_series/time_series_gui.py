@@ -462,6 +462,7 @@ class TimeSeriesGui(GUIBase):
         if data is not None:
             for channel, y_arr in data.items():
                 self.curves[channel].setData(y=y_arr, x=data_time)
+
         if smooth_data is not None:
             for channel, y_arr in smooth_data.items():
                 self.averaged_curves[channel].setData(y=y_arr, x=smooth_time)
