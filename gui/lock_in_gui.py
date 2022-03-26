@@ -18,22 +18,17 @@ along with Qudi. If not, see <http://www.gnu.org/licenses/>.
 Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
-import logging
 
-import numpy as np
 import os
 import sys
-import pyqtgraph as pg
 
 from core.module import Connector
 from core.configoption import ConfigOption
-from core.statusvariable import StatusVar
 from gui.guibase import GUIBase
 from gui.colordefs import QudiPalettePale as palette
 from qtpy import QtWidgets
 from qtpy import QtCore
 from qtpy import uic
-from qtpy import QtGui
 
 
 class LockInMainWindow(QtWidgets.QMainWindow):
@@ -94,18 +89,15 @@ class LockInGui(GUIBase):
         # Use the inherited class 'CounterMainWindow' to create the GUI window
         self._mw = LockInMainWindow()
 
-        # Settings default parameters
-        self.update_status()
-
         # Setup dock widgets
         self._mw.centralwidget.hide()
         self._mw.setDockNestingEnabled(True)
 
-        # spectrum
-        self._rw = self._mw.r_PlotWidget  # pg.PlotWidget(name='Counter1')
-        self._plot_spectrum = self._rw.plotItem
+        # Trace spectrum (adjustment regime to continuously read lock-in)
+        self._trw = self._mw.trace_PlotWidget  # pg.PlotWidget(name='Counter1')
+        self._trace_spectrum = self._trw.plotItem
 
-        self._curve1 = self._rw.plot()
+        self._curve1 = self._trw.plot()
         self._curve1.setPen(palette.c1,
                             width=1,
                             clipToView=True,
@@ -113,7 +105,7 @@ class LockInGui(GUIBase):
                             autoDownsample=True,
                             antialias=True)
 
-        self._curve2 = self._rw.plot()
+        self._curve2 = self._trw.plot()
         self._curve2.setPen(palette.c2,
                             width=1,
                             clipToView=True,
@@ -121,13 +113,48 @@ class LockInGui(GUIBase):
                             autoDownsample=True,
                             antialias=True)
 
-        self._plot_spectrum.showAxis('top')
-        self._plot_spectrum.showAxis('right')
+        self._trace_spectrum.showAxis('top')
+        self._trace_spectrum.showAxis('right')
 
-        self._plot_spectrum.setLabel('bottom', 'Time', units='s')
-        self._plot_spectrum.setLabel('left', 'Intensity (arb. units.)')
+        self._trace_spectrum.setLabel('bottom', 'Time', units='s')
+        self._trace_spectrum.setLabel('left', 'Intensity (arb. units.)')
 
+        # X and Y channels spectrum
+        self._yrw = self._mw.y_PlotWidget
+        self._y_spectrum = self._yrw.plotItem
+
+        self._curve_y = self._yrw.plot()
+        self._curve_y.setPen(palette.c1,
+                             width=1,
+                             clipToView=True,
+                             downsampleMethod='subsample',
+                             autoDownsample=True,
+                             antialias=True)
+        self._curve_y.setSymbol(symbol='o')
+
+        self._y_spectrum.showAxis('top')
+        self._y_spectrum.showAxis('right')
+
+        self._y_spectrum.setLabel('bottom', 'Delay line position', units='mm')
+        self._y_spectrum.setLabel('left', 'Y lock-in channel', units='V')
+
+        #####################
+        # Setting default parameters
+        self.update_status()
+        self.update_settings()
+        self.update_data()
+
+        #####################
+        # Connecting user interactions
+        # Actions
         self._mw.start_trace_Action.triggered.connect(self.start_clicked)
+
+        # Boxes
+        self._mw.trace_window_DoubleSpinBox.editingFinished.connect(self.data_window_changed)
+        self._mw.data_rate_DoubleSpinBox.editingFinished.connect(self.data_rate_changed)
+
+        ###################
+        # Starting the physical measurements
 
         self.sigStartCounter.connect(
             self._lock_in_logic.start_reading, QtCore.Qt.QueuedConnection)
@@ -148,12 +175,6 @@ class LockInGui(GUIBase):
         self._lock_in_logic.sigStatusChanged.connect(
             self.update_status, QtCore.Qt.QueuedConnection)
 
-        #####################
-        # Setting default parameters
-        self.update_status()
-        self.update_settings()
-        self.update_data()
-
     def show(self):
         """ Make window visible and put it above all other windows """
         QtWidgets.QMainWindow.show(self._mw)
@@ -163,12 +184,16 @@ class LockInGui(GUIBase):
     def on_deactivate(self):
         """ Deactivate the module properly """
         # FIXME: !
-        # self._ccd_logic.stop_focus()
+
         self.sigStartCounter.disconnect()
         self.sigStopCounter.disconnect()
         self.sigStartRecording.disconnect()
         self.sigStopRecording.disconnect()
         self.sigSettingsChanged.disconnect()
+
+        self._mw.data_rate_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.trace_window_DoubleSpinBox.editingFinished.disconnect()
+
         self._lock_in_logic.sigDataChanged.disconnect()
         self._lock_in_logic.sigSettingsChanged.disconnect()
         self._lock_in_logic.sigStatusChanged.disconnect()
@@ -198,42 +223,83 @@ class LockInGui(GUIBase):
         self._mw.start_trace_Action.setEnabled(True)
         self._mw.record_trace_Action.setEnabled(running)
 
+        self._mw.data_rate_DoubleSpinBox.setEnabled(not running)
+        self._mw.trace_window_DoubleSpinBox.setEnabled(not running)
+
+    @QtCore.Slot()
+    def data_window_changed(self):
+        """ Handling the change of the trance window and sending it to the measurement.
+        """
+        val = self._mw.trace_window_DoubleSpinBox.value()
+        self.sigSettingsChanged.emit({'trace_window_size': val})
+        return
+
+    @QtCore.Slot()
+    def data_rate_changed(self):
+        """ Handling the change of the data rate (points per s, Hz) and sending it to the measurement.
+        """
+        val = self._mw.data_rate_DoubleSpinBox.value()
+        self.sigSettingsChanged.emit({'data_rate': val})
+        return
+
     @QtCore.Slot()
     @QtCore.Slot(dict)
     def update_settings(self, settings_dict=None):
         if settings_dict is None:
             settings_dict = self._lock_in_logic.all_settings
 
-        # if 'oversampling_factor' in settings_dict:
-        #     self._mw.oversampling_SpinBox.blockSignals(True)
-        #     self._mw.oversampling_SpinBox.setValue(settings_dict['oversampling_factor'])
-        #     self._mw.oversampling_SpinBox.blockSignals(False)
-        # if 'trace_window_size' in settings_dict:
-        #     self._mw.trace_length_DoubleSpinBox.blockSignals(True)
-        #     self._mw.trace_length_DoubleSpinBox.setValue(settings_dict['trace_window_size'])
-        #     self._mw.trace_length_DoubleSpinBox.blockSignals(False)
-        # if 'data_rate' in settings_dict:
-        #     self._mw.data_rate_DoubleSpinBox.blockSignals(True)
-        #     self._mw.data_rate_DoubleSpinBox.setValue(settings_dict['data_rate'])
-        #     self._mw.data_rate_DoubleSpinBox.blockSignals(False)
-        # if 'active_channels' in settings_dict:
-        #     val = tuple(ch.name for ch in settings_dict['active_channels'])
-        #     for chnl, w in self._csd_widgets.items():
-        #         enabled = chnl in val
-        #         w['checkbox1'].setChecked(enabled)
-        # if 'averaged_channels' in settings_dict:
-        #     val = settings_dict['averaged_channels']
-        #     for chnl, w in self._csd_widgets.items():
-        #         enabled = chnl in val
-        #         w['checkbox2'].setChecked(enabled)
-        # if 'moving_average_width' in settings_dict:
-        #     val = settings_dict['moving_average_width']
-        #     self._mw.moving_average_spinBox.blockSignals(True)
-        #     self._mw.moving_average_spinBox.setValue(val)
-        #     self._mw.moving_average_spinBox.blockSignals(False)
+        if 'trace_window_size' in settings_dict:
+            self._mw.trace_window_DoubleSpinBox.blockSignals(True)
+            self._mw.trace_window_DoubleSpinBox.setValue(settings_dict['trace_window_size'])
+            self._mw.trace_window_DoubleSpinBox.blockSignals(False)
+        if 'data_rate' in settings_dict:
+            self._mw.data_rate_DoubleSpinBox.blockSignals(True)
+            self._mw.data_rate_DoubleSpinBox.setValue(settings_dict['data_rate'])
+            self._mw.data_rate_DoubleSpinBox.blockSignals(False)
 
         self.apply_channel_settings(update_logic=False)
         return
+
+    @QtCore.Slot()
+    def start_clicked(self):
+        """
+        Handling the Start button to stop and restart the counter.
+        """
+        self._mw.start_trace_Action.setEnabled(False)
+        self._mw.record_trace_Action.setEnabled(False)
+
+        self._mw.trace_window_DoubleSpinBox.setEnabled(False)
+        self._mw.data_rate_DoubleSpinBox.setEnabled(False)
+
+        if self._mw.start_trace_Action.isChecked():
+            # TODO: get some settings from
+            settings = {'trace_window_size': self._mw.trace_window_DoubleSpinBox.value(),
+                        'data_rate': self._mw.data_rate_DoubleSpinBox.value()
+                        }
+            self.sigSettingsChanged.emit(settings)
+            self.sigStartCounter.emit()
+        else:
+            self.sigStopCounter.emit()
+        pass
+
+    @QtCore.Slot()
+    @QtCore.Slot(object, object)
+    @QtCore.Slot(object, object, object, object)
+    def update_data(self, data_time=None, data=None, smooth_time=None, smooth_data=None):
+        """ The function that grabs the data and sends it to the plot.
+        """
+        if data_time is None and data is None:
+            data_time, data = self._lock_in_logic.trace_data
+            # smooth_time, smooth_data = self._lock_in_logic.averaged_trace_data
+        elif (data_time is None) ^ (data is None):
+            self.log.error('Must provide a full data set of x and y values. update_data failed.')
+            return
+
+        if data is not None:
+            self._curve1.setData(y=data.get('X'), x=data_time)
+            self._curve2.setData(y=data.get('Y'), x=data_time)
+
+        return 0
 
     @QtCore.Slot()
     def apply_channel_settings(self, update_logic=True):
@@ -290,78 +356,9 @@ class LockInGui(GUIBase):
         #     self._toggle_channel_data_plot(chnl, visible, av_visible)
 
         # if update_logic:
-            # self.sigSettingsChanged.emit(
-                # {'active_channels': channels, 'averaged_channels': av_channels})
+        # self.sigSettingsChanged.emit(
+        # {'active_channels': channels, 'averaged_channels': av_channels})
         return
-
-    @QtCore.Slot()
-    def start_clicked(self):
-        """
-        Handling the Start button to stop and restart the counter.
-        """
-        self._mw.start_trace_Action.setEnabled(False)
-        self._mw.record_trace_Action.setEnabled(False)
-
-        if self._mw.start_trace_Action.isChecked():
-            # TODO: get some settings from
-            settings = {'trace_window_size': 7,
-                        'data_rate': 10,
-                        'oversampling_factor': 1,
-                        'moving_average_width': 5}
-            self.sigSettingsChanged.emit(settings)
-            self.sigStartCounter.emit()
-        else:
-            self.sigStopCounter.emit()
-        pass
-
-    @QtCore.Slot()
-    @QtCore.Slot(object, object)
-    @QtCore.Slot(object, object, object, object)
-    def update_data(self, data_time=None, data=None, smooth_time=None, smooth_data=None):
-        """ The function that grabs the data and sends it to the plot.
-        """
-        if data_time is None and data is None and smooth_data is None and smooth_time is None:
-            data_time, data = self._lock_in_logic.trace_data
-            smooth_time, smooth_data = self._lock_in_logic.averaged_trace_data
-        elif (data_time is None) ^ (data is None) or (smooth_time is None) ^ (smooth_data is None):
-            self.log.error('Must provide a full data set of x and y values. update_data failed.')
-            return
-
-        if data is not None:
-            # for channel, y_arr in data.items():
-            self._test_data = data
-            self._test_time = data_time
-
-            # print(data.items())
-            # print(data_time)
-            self._curve1.setData(y=data.get('X'), x=data_time)
-            self._curve2.setData(y=data.get('Y'), x=data_time)
-
-        # if smooth_data is not None:
-        #     for channel, y_arr in smooth_data.items():
-        #         self.averaged_curves[channel].setData(y=y_arr, x=smooth_time)
-        #
-        # curr_value_channel = self._mw.curr_value_comboBox.currentText()
-        # if curr_value_channel != 'None':
-        #     if curr_value_channel.startswith('average '):
-        #         chnl = curr_value_channel.split('average ', 1)[-1]
-        #         val = smooth_data[chnl][-1]
-        #     else:
-        #         chnl = curr_value_channel
-        #         val = data[chnl][-1]
-        #     ch_type = self._time_series_logic.active_channel_types[chnl]
-        #     ch_unit = self._time_series_logic.active_channel_units[chnl]
-        #     if ch_type == StreamChannelType.ANALOG:
-        #         self._mw.curr_value_Label.setText('{0:.3f} {1}'.format(val, ch_unit))
-        #     else:
-        #         self._mw.curr_value_Label.setText('{0:,d} {1}'.format(int(round(val)), ch_unit))
-        return 0
-
-
-
-
-
-
 
     # def update_data(self):
     #     """ The function that grabs the data and sends it to the plot.
@@ -449,10 +446,10 @@ class LockInGui(GUIBase):
     #         _view_box.setState(_state)
     #
     #     # Refresh lables!
-    #     self._plot_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
+    #     self._trace_spectrum.setLabel('bottom', f'{self._x_axis_mode}')
     #     self._iw.view.setLabel('bottom', f'{self._x_axis_mode}')
     #
-    #     self._plot_spectrum.setLabel('left', f'Intensity ({self._y_axis_mode})')
+    #     self._trace_spectrum.setLabel('left', f'Intensity ({self._y_axis_mode})')
     #     self._iw.view.setLabel('left', f'Intensity ({self._y_axis_mode})')
     #
     # def focus_clicked(self):

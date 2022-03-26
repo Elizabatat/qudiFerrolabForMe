@@ -29,14 +29,13 @@ import numpy as np
 
 from core.module import Base
 from core.configoption import ConfigOption
-from core.util.helpers import natural_sort
 
 from interface.simple_data_interface import SimpleDataInterface
 
-
 # TODO: all interactions are use query to remove echo and first symbol stripped to remove /n char
 
-class sr830LockIn(Base, SimpleDataInterface):
+
+class Sr830LockIn(Base, SimpleDataInterface):
     """
     Main class for lock-in control.
     """
@@ -172,12 +171,6 @@ class sr830LockIn(Base, SimpleDataInterface):
 
     @buffer_size.setter
     def buffer_size(self, size):
-        # if self._check_settings_change():
-        #     size = int(size)
-        #     if size < 1:
-        #         self.log.error('Buffer size smaller than 1 makes no sense. Tried to set {0} as '
-        #                        'buffer size and failed.'.format(size))
-        #         return
         self.__buffer_size = int(size)
         self._init_buffer()
         return
@@ -274,33 +267,7 @@ class sr830LockIn(Base, SimpleDataInterface):
         if avail_samples > self.buffer_size:
             self._has_overflown = True
 
-        # offset = 0
-        # analog_x = np.arange(number_of_samples, dtype=self.__data_type) / self.__sample_rate
-        # analog_x *= 2 * np.pi
-        # analog_x += 2 * np.pi * (self._last_read - self._start_time)
-        # self._last_read = time.perf_counter()
-        #
-        # amplitude = 10
-        # np.sin(analog_x, out=buffer[offset:(offset+number_of_samples)])
-        # buffer[offset:(offset + number_of_samples)] *= amplitude
-        # noise_level = 0.1 * amplitude
-        # noise = noise_level - 2 * noise_level * np.random.rand(number_of_samples)
-        # buffer[offset:(offset + number_of_samples)] += noise
-        # offset += number_of_samples
-
-        # offset = 0
-        # buffer[offset:number_of_samples] = self.getData()[0]
-        # offset += number_of_samples
-        # buffer[offset:(offset+number_of_samples)] = self.getData()[1]
-        # offset += number_of_samples
-
-        # buffer[offset:(offset + number_of_samples)] += self.getData()[1]
-        # offset += number_of_samples
-        # for i in range(2):
-        #     buffer[offset:(offset + number_of_samples)] += self.getData()[0]
-        #     offset += number_of_samples
-
-        # worked best:
+        # writing to buffer with offset of 1
         self._last_read = time.perf_counter()
         buffer[0:number_of_samples] = self.getData()[0]
         buffer[1:number_of_samples+1] = self.getData()[1]
@@ -340,6 +307,21 @@ class sr830LockIn(Base, SimpleDataInterface):
         total_samples = 2 * read_samples
         return self._data_buffer[:total_samples].reshape((2,
                                                           number_of_samples))
+
+    def configure(self, sample_rate=None):
+        """
+        Method to configure all possible settings of the data input stream.
+
+        @param float sample_rate: The sample rate in Hz at which data points are acquired
+
+        @return dict: All current settings in a dict. Keywords are the same as kwarg names.
+        """
+        if self._check_settings_change():
+            # Handle sample rate change
+            if sample_rate is not None:
+                self.sample_rate = sample_rate
+
+        return self.all_settings
 
     def read_single_point(self):
         """

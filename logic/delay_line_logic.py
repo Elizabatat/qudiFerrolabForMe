@@ -24,6 +24,7 @@ import numpy as np
 from core.module import Connector, StatusVar
 from logic.generic_logic import GenericLogic
 from qtpy import QtCore
+from core.util.mutex import Mutex
 
 
 class DelayLineLogic(GenericLogic):
@@ -37,7 +38,10 @@ class DelayLineLogic(GenericLogic):
     # declare connectors
     motor = Connector(interface='MotorInterface')
 
-    signalMovementFinished = QtCore.Signal()
+    # declare signals
+    # signalMovementFinished = QtCore.Signal()
+    sigStatusChanged = QtCore.Signal(bool)
+    sigGetMeasurePoint = QtCore.Signal()
 
     # status variables
     _start_scan_mm = StatusVar(default=1)
@@ -48,29 +52,103 @@ class DelayLineLogic(GenericLogic):
     _number_scans = StatusVar(default=1)
     _wait_time_s = StatusVar(default=1)
 
+    def __init__(self, *args, **kwargs):
+        """
+        """
+        super().__init__(*args, **kwargs)
+
+        # locking for thread safety
+        self.threadlock = Mutex()
+        self._stop_requested = True
+
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
         self._delay_line = self.motor()
 
+        self._stop_requested = True
+
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
-        pass
+        if self.module_state() == 'locked':
+            # self.module_state.unlock()
+            self._stop_movement()
 
+    def _stop_movement(self):
+        with self.threadlock:
+            if self.module_state() == 'locked':
+                self.module_state.unlock()
+                self.sigStatusChanged.emit(False)
+        return 0
+
+    @QtCore.Slot(float)
     def move_abs(self, pos_mm):
         """ Move the delay line to absolute position in mm.
 
         @param float pos_mm: requested position in mm
         """
-        constraints = self.get_constraints()
-        if constraints[0] <= pos_mm <= constraints[1]:
-            self._delay_line.move_abs(pos_mm)
-            # self.wait_until_stop()
-            # self.signalMovementFinished.emit()
-            self._position_mm = self.get_pos()
-        else:
-            self.log.warning("Cannot move because it would be beyond constraints.")
+        with self.threadlock:
+            if self.module_state() == 'locked':
+                self.log.warning('Already moving!')
+                self.sigStatusChanged.emit(True)
+                return 0
+
+            self.module_state.lock()
+            self._stop_requested = False
+
+            self.sigStatusChanged.emit(True)
+
+            constraints = self.get_constraints()
+            if constraints[0] <= pos_mm <= constraints[1]:
+                self._delay_line.move_abs(pos_mm)
+                # self.wait_until_stop()
+                # self.signalMovementFinished.emit()
+                self._position_mm = self.get_pos()
+                self.module_state.unlock()
+                self.sigStatusChanged.emit(False)
+            else:
+                self.log.warning("Cannot move because it would be beyond constraints.")
+
+    def _move_abs_internal(self, pos_mm):
+        """ Move the delay line to absolute position in mm
+
+        @param float pos_mm: requested position in mm
+        """
+        self._delay_line.move_abs(pos_mm)
+        self._position_mm = self.get_pos()
+
+    @QtCore.Slot()
+    def do_scan(self):
+        """ Typical movement sequence for delay line in pump-probe experiments.
+        Start it by emmiting signals.
+        It will take all the parameters from status variables.
+        """
+        # TODO: constraints on all the parameters
+
+        with self.threadlock:
+            if self.module_state() == 'locked':
+                self.log.warning('Already moving!')
+                self.sigStatusChanged.emit(True)
+                return 0
+
+            self.module_state.lock()
+            self._stop_requested = False
+
+            self.sigStatusChanged.emit(True)
+
+            for scan in range(self._number_scans):
+                for position in np.arange(self._start_scan_mm, self._end_scan_mm + self._step_mm, self._step_mm):  # stop_mm+step_mm to include end in range
+                    self._move_abs_internal(position)
+                    for point in range(self._number_points):
+                        time.sleep(self._wait_time_s)
+                        self.log.info(f"I'm in the scan {scan} at {position} position, and at {point} point")
+                        # self.signalMovementFinished.emit()
+                        self.sigGetMeasurePoint.emit()
+
+            self.module_state.unlock()
+
+            self.sigStatusChanged.emit(False)
 
     def move_rel(self, pos_rel_mm):
         """ Move the delay line to relative (current position + relative shift) position in mm.
@@ -107,6 +185,29 @@ class DelayLineLogic(GenericLogic):
         """Asking for constrains (minimal and maximal positions) by hardware module"""
         return self._delay_line.get_constraints()
 
+    def set_parameter(self, par, value):
+        self.log.info(f"Changing parameter {par} to value {value}")
+        if par == "start_scan_mm":
+            self._start_scan_mm = value
+        elif par == "end_scan_mm":
+            self._end_scan_mm = value
+        elif par == "step_mm":
+            self._step_mm = value
+        elif par == "wait_time_s":
+            self._wait_time_s = value
+        elif par == "number_points":
+            self._number_points = value
+        elif par == "number_scans":
+            self._number_scans = value
+        else:
+            pass
+
+    def test_signal(self):
+        """Some tests to """
+        self.log.info("Im emitting signal on the delay line logic side!")
+        self.sigGetMeasurePoint.emit()
+
+    # OLD WAY TO DO MEASUREMENTS WITH EXPLICIT ARGUMENTS
     def measurement_movement(self, start_mm, stop_mm, step_mm, wait_time_s, number_points, number_scans):
         """ Typical movement sequence for delay line in pump-probe experiments
          it emits a signal when measurement should be performed
@@ -125,23 +226,6 @@ class DelayLineLogic(GenericLogic):
                     time.sleep(wait_time_s)
                     self.log.info(f"I'm in the scan {scan} at {position} position, and at {point} point")
                     self.signalMovementFinished.emit()
-
-    def set_parameter(self, par, value):
-        self.log.info(f"Changing parameter {par} to value {value}")
-        if par == "start_scan_mm":
-            self._start_scan_mm = value
-        elif par == "end_scan_mm":
-            self._end_scan_mm = value
-        elif par == "step_mm":
-            self._step_mm = value
-        elif par == "wait_time_s":
-            self._wait_time_s = value
-        elif par == "number_points":
-            self._number_points = value
-        elif par == "number_scans":
-            self._number_scans = value
-        else:
-            pass
 
     # def calibrate(self, param_dict):
     #     """ Set zero for specified axis.

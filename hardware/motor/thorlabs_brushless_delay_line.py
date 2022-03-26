@@ -56,6 +56,8 @@ class thorlabsDelay(Base,MotorInterface):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        self._is_running = False
+
     _modclass = 'delay_line'
     _modtype = 'hardware'
 
@@ -69,10 +71,22 @@ class thorlabsDelay(Base,MotorInterface):
         """
         self.connect()
 
+        self._is_running = False
+
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
         self.disconnect()
+
+        self._is_running = False
+
+    @property
+    def is_running(self):
+        """
+        Read-only flag for checking if delay line is busy
+        """
+        # return self._is_running
+        return self._channel_handle.IsDeviceBusy
 
     def abort(self):
         pass
@@ -110,15 +124,33 @@ class thorlabsDelay(Base,MotorInterface):
         pass
 
     def move_abs(self, position_mm):
+        if self.is_running:
+            self.log.warning('Unable to move. Already moving.')
+            return 0
+
+        self._is_running = True
         self._channel_handle.MoveTo(Decimal(position_mm), 60000)
+        return 0
 
     def move_rel(self, rel_position_mm):
+        if self.is_running:
+            self.log.warning('Unable to move. Already moving.')
+            return 0
+
+        self._is_running = True
         self.move_abs(self.get_pos() + rel_position_mm)
+        return 0
+
+    def stop_movements(self):
+        if self.is_running:
+            self._is_running = False
+        return 0
 
     def set_velocity(self, param_dict):
         pass
 
     def connect(self):
+        # TODO: better check necessary delays for conections
         DeviceManagerCLI.CheckForConnectionChanges()
         DeviceManagerCLI.GetDeviceList()
         self._controller_handle = Thorlabs.MotionControl.Benchtop.BrushlessMotorCLI \
@@ -128,9 +160,9 @@ class thorlabsDelay(Base,MotorInterface):
         self._channel_handle = self._controller_handle.GetChannel(1)
         time.sleep(1)  # needed to wait a bit to connect to channel
         self._channel_handle.LoadMotorConfiguration(self._channel_handle.get_DeviceID())
-        time.sleep(1)  # needed to wait a bit to connect to channel
+        # time.sleep(1)  # needed to wait a bit to connect to channel
         self._channel_handle.StartPolling(250)
-        time.sleep(1)  # needed to wait a bit to connect to channel
+        # time.sleep(1)  # needed to wait a bit to connect to channel
         self._channel_handle.EnableDevice()
         time.sleep(1)  # needed to wait a bit for the enabling of the device and application of settings
         if self._controller_handle.IsConnected and self._channel_handle.IsConnected and self._channel_handle.IsEnabled \
@@ -140,19 +172,21 @@ class thorlabsDelay(Base,MotorInterface):
         else:
             self.log.warning("Problems with the connection to the delay line. Check all connections and serial number.")
 
-    def wait_until_done(self):
-        if self._channel_handle.get_IsDeviceBusy():
-            time.sleep(0.05)
-
-    def wait(self, wait_s):
-        time.sleep(wait_s)
-
     def disconnect(self):
         self._channel_handle.StopPolling()
         self._channel_handle.DisableDevice()
         self._channel_handle.Disconnect()
         self._controller_handle.Disconnect()
 
+    def wait_until_done(self):
+        if self._channel_handle.IsDeviceBusy():
+            time.sleep(0.05)
+
+    def wait(self, wait_s):
+        time.sleep(wait_s)
+
     def home(self):
         """ Home delay line within 60s by moving it forward and back to zero"""
         self._channel_handle.Home(60000)
+
+
