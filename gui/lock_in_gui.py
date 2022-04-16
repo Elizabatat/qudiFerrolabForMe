@@ -58,8 +58,8 @@ class LockInGui(GUIBase):
 
     sigStartCounter = QtCore.Signal()
     sigStopCounter = QtCore.Signal()
-    sigStartRecording = QtCore.Signal()
-    sigStopRecording = QtCore.Signal()
+    # sigStartRecording = QtCore.Signal()
+    # sigStopRecording = QtCore.Signal()
     sigSettingsChanged = QtCore.Signal(dict)
 
     _data = []
@@ -132,6 +132,15 @@ class LockInGui(GUIBase):
                              antialias=True)
         self._curve_y.setSymbol(symbol='o')
 
+        self._curve_x = self._yrw.plot()
+        self._curve_x.setPen(palette.c2,
+                             width=3,
+                             clipToView=True,
+                             downsampleMethod='subsample',
+                             autoDownsample=True,
+                             antialias=True)
+        self._curve_x.setSymbol(symbol='o')
+
         self._y_spectrum.showAxis('top')
         self._y_spectrum.showAxis('right')
 
@@ -160,10 +169,10 @@ class LockInGui(GUIBase):
             self._lock_in_logic.start_reading, QtCore.Qt.QueuedConnection)
         self.sigStopCounter.connect(
             self._lock_in_logic.stop_reading, QtCore.Qt.QueuedConnection)
-        self.sigStartRecording.connect(
-            self._lock_in_logic.start_recording, QtCore.Qt.QueuedConnection)
-        self.sigStopRecording.connect(
-            self._lock_in_logic.stop_recording, QtCore.Qt.QueuedConnection)
+        # self.sigStartRecording.connect(
+        #     self._lock_in_logic.start_recording, QtCore.Qt.QueuedConnection)
+        # self.sigStopRecording.connect(
+        #     self._lock_in_logic.stop_recording, QtCore.Qt.QueuedConnection)
         self.sigSettingsChanged.connect(
             self._lock_in_logic.configure_settings, QtCore.Qt.QueuedConnection)
 
@@ -174,6 +183,8 @@ class LockInGui(GUIBase):
             self.update_settings, QtCore.Qt.QueuedConnection)
         self._lock_in_logic.sigStatusChanged.connect(
             self.update_status, QtCore.Qt.QueuedConnection)
+        self._lock_in_logic._delay.sigGetMeasurePoint.connect(
+            self.update_x_y, QtCore.Qt.QueuedConnection)
 
     def show(self):
         """ Make window visible and put it above all other windows """
@@ -187,8 +198,8 @@ class LockInGui(GUIBase):
 
         self.sigStartCounter.disconnect()
         self.sigStopCounter.disconnect()
-        self.sigStartRecording.disconnect()
-        self.sigStopRecording.disconnect()
+        # self.sigStartRecording.disconnect()
+        # self.sigStopRecording.disconnect()
         self.sigSettingsChanged.disconnect()
 
         self._mw.data_rate_DoubleSpinBox.editingFinished.disconnect()
@@ -211,17 +222,17 @@ class LockInGui(GUIBase):
 
         if running is None:
             running = self._lock_in_logic.module_state() == 'locked'
-        if recording is None:
-            recording = self._lock_in_logic.data_recording_active
+        # if recording is None:
+        #     recording = self._l/ock_in_logic.data_recording_active
 
         self._mw.start_trace_Action.setChecked(running)
         self._mw.start_trace_Action.setText('Stop trace' if running else 'Start trace')
 
-        self._mw.record_trace_Action.setChecked(recording)
-        self._mw.record_trace_Action.setText('Save recorded' if recording else 'Start recording')
+        # self._mw.record_trace_Action.setChecked(recording)
+        # self._mw.record_trace_Action.setText('Save recorded' if recording else 'Start recording')
 
         self._mw.start_trace_Action.setEnabled(True)
-        self._mw.record_trace_Action.setEnabled(running)
+        # self._mw.record_trace_Action.setEnabled(running)
 
         self._mw.data_rate_DoubleSpinBox.setEnabled(not running)
         self._mw.trace_window_DoubleSpinBox.setEnabled(not running)
@@ -266,7 +277,7 @@ class LockInGui(GUIBase):
         Handling the Start button to stop and restart the counter.
         """
         self._mw.start_trace_Action.setEnabled(False)
-        self._mw.record_trace_Action.setEnabled(False)
+        # self._mw.record_trace_Action.setEnabled(False)
 
         self._mw.trace_window_DoubleSpinBox.setEnabled(False)
         self._mw.data_rate_DoubleSpinBox.setEnabled(False)
@@ -300,6 +311,21 @@ class LockInGui(GUIBase):
             self._curve2.setData(y=data.get('Y'), x=data_time)
 
         return 0
+
+    @QtCore.Slot()
+    def update_x_y(self):
+        """
+        Kinda same as above but for point-by point measurements.
+        At some point should be merged with trace update, probably.
+        """
+        self._curve_x.setData(
+            x=self._lock_in_logic.data_pos_x_y[0],
+            y=self._lock_in_logic.data_pos_x_y[2]
+        )
+        self._curve_y.setData(
+            x=self._lock_in_logic.data_pos_x_y[0],
+            y=self._lock_in_logic.data_pos_x_y[3]
+        )
 
     @QtCore.Slot()
     def apply_channel_settings(self, update_logic=True):

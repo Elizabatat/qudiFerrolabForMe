@@ -42,6 +42,9 @@ class DelayLineLogic(GenericLogic):
     # signalMovementFinished = QtCore.Signal()
     sigStatusChanged = QtCore.Signal(bool)
     sigGetMeasurePoint = QtCore.Signal()
+    sigDoScan = QtCore.Signal()
+    sigStopScan = QtCore.Signal()
+    # sigStopMovement = QtCore.Signal()  # not necessary at this stage
 
     # status variables
     _start_scan_mm = StatusVar(default=1)
@@ -68,6 +71,9 @@ class DelayLineLogic(GenericLogic):
 
         self._stop_requested = True
 
+        # Connect signals
+        self.sigStopScan.connect(self._stop_movement, QtCore.Qt.DirectConnection)  # QueuedConnection?
+
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
@@ -75,12 +81,8 @@ class DelayLineLogic(GenericLogic):
             # self.module_state.unlock()
             self._stop_movement()
 
-    def _stop_movement(self):
-        with self.threadlock:
-            if self.module_state() == 'locked':
-                self.module_state.unlock()
-                self.sigStatusChanged.emit(False)
-        return 0
+        # Connect signals
+        self.sigStopScan.disconnect()
 
     @QtCore.Slot(float)
     def move_abs(self, pos_mm):
@@ -121,7 +123,7 @@ class DelayLineLogic(GenericLogic):
     @QtCore.Slot()
     def do_scan(self):
         """ Typical movement sequence for delay line in pump-probe experiments.
-        Start it by emmiting signals.
+        Start it by emmiting signal.
         It will take all the parameters from status variables.
         """
         # TODO: constraints on all the parameters
@@ -137,18 +139,32 @@ class DelayLineLogic(GenericLogic):
 
             self.sigStatusChanged.emit(True)
 
+            # TODO: refactor this shit with ifs
+            # TODO: think about more correct generation of the intervals (include endpoint without overshooting)
             for scan in range(self._number_scans):
                 for position in np.arange(self._start_scan_mm, self._end_scan_mm + self._step_mm, self._step_mm):  # stop_mm+step_mm to include end in range
-                    self._move_abs_internal(position)
-                    for point in range(self._number_points):
-                        time.sleep(self._wait_time_s)
-                        self.log.info(f"I'm in the scan {scan} at {position} position, and at {point} point")
-                        # self.signalMovementFinished.emit()
-                        self.sigGetMeasurePoint.emit()
+                    if not self._stop_requested:  # could be done better
+                        self._move_abs_internal(position)
+                        for point in range(self._number_points):
+                            time.sleep(self._wait_time_s)
+                            self.log.info(f"I'm in the scan {scan} at {position} position, and at {point} point")
+                            # self.signalMovementFinished.emit()
+                            self.sigGetMeasurePoint.emit()
 
             self.module_state.unlock()
 
             self.sigStatusChanged.emit(False)
+
+    @QtCore.Slot()
+    def _stop_movement(self):
+        self._stop_requested = True
+        self.log.info("AWW")
+        # with self.threadlock:
+        #     if self.module_state() == 'locked':
+        #         self._stop_requested = True
+        #         self.log.info("AWW")
+        #         # self.sigStatusChanged.emit(False)
+        return 0
 
     def move_rel(self, pos_rel_mm):
         """ Move the delay line to relative (current position + relative shift) position in mm.

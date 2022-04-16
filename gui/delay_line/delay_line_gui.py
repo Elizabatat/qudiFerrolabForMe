@@ -55,7 +55,7 @@ class DelayLineGui(GUIBase):
 
     # declaring signals
     sigMoveTo = QtCore.Signal(float)
-    sigDoScan = QtCore.Signal()
+    # sigDoScan = QtCore.Signal()
 
     # sigDelayLineStopped = QtCore.Signal()
 
@@ -92,6 +92,7 @@ class DelayLineGui(GUIBase):
         self._mw.home_Action.triggered.connect(self.home)
         self._mw.update_Action.triggered.connect(self.update_position)
         self._mw.scan_Action.triggered.connect(self.do_scan)
+        self._mw.stop_Action.triggered.connect(self.stop_scan)
 
         # self.sigDelayLineStopped.connect(self.test_signal)
 
@@ -106,11 +107,11 @@ class DelayLineGui(GUIBase):
 
         # Signals
         self.sigMoveTo.connect(self._delay_logic.move_abs, QtCore.Qt.QueuedConnection)
-        self.sigDoScan.connect(self._delay_logic.do_scan, QtCore.Qt.QueuedConnection)
 
         # Signals from logic
         self._delay_logic.sigStatusChanged.connect(
             self.update_status, QtCore.Qt.QueuedConnection)
+        self._delay_logic.sigDoScan.connect(self._delay_logic.do_scan, QtCore.Qt.QueuedConnection)
 
     def on_deactivate(self):
         """ Hide window, disconnect boxes, signals and stop ipython console.
@@ -118,11 +119,12 @@ class DelayLineGui(GUIBase):
 
         # Disconnect Signals
         self.sigMoveTo.disconnect()
-        self.sigDoScan.disconnect()
 
+        # Signals from logic
+        self._delay_logic.sigDoScan.disconnect()
         self._delay_logic.sigStatusChanged.disconnect()
 
-        # Disconect boxes Boxes
+        # Disconect boxes
         self._mw.start_scan_mm_doubleSpinBox.editingFinished.disconnect()
         self._mw.delay_position_mm_doubleSpinBox.editingFinished.disconnect()
         self._mw.end_scan_mm_doubleSpinBox.editingFinished.disconnect()
@@ -158,7 +160,7 @@ class DelayLineGui(GUIBase):
         pass
 
     def do_scan(self):
-        self.sigDoScan.emit()
+        self._delay_logic.sigDoScan.emit()
         # self._delay_logic.measurement_movement(
         #                                        self._mw.start_scan_mm_doubleSpinBox.value(),
         #                                        self._mw.end_scan_mm_doubleSpinBox.value(),
@@ -170,6 +172,9 @@ class DelayLineGui(GUIBase):
         # self.update_position()
         # self.sigDelayLineStopped.emit()
         pass
+
+    def stop_scan(self):
+        self._delay_logic.sigStopScan.emit()
 
     @QtCore.Slot(bool)
     def update_status(self, moving=None):
@@ -195,6 +200,7 @@ class DelayLineGui(GUIBase):
 
     # TODO: should refactor it to something like signal(dict) like in lock_in_gui.py
 
+    # TODO: should make less restrictive condition to prevent attempts to move with um precision like 9.9997 to 10.0
     def position_changed(self):
         old_parameter = self._delay_logic._position_mm
         if old_parameter != self._mw.delay_position_mm_doubleSpinBox.value():

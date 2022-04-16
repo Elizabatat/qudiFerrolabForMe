@@ -40,6 +40,7 @@ class LockInLogic(GenericLogic):
     # declare connectors
     lock_in = Connector(interface='SimpleDataInterface')
     delay_logic = Connector(interface='GenericLogic')
+    savelogic = Connector(interface='SaveLogic')
 
     data = []
     data_pos_x_y = []
@@ -99,6 +100,7 @@ class LockInLogic(GenericLogic):
 
         # connecting external signal
         self._delay.sigGetMeasurePoint.connect(self.test_signal_1)
+        self._delay.sigDoScan.connect(self._init_data_pos_x_y)
 
         settings = self.all_settings
         self.configure_settings(**settings)
@@ -110,14 +112,17 @@ class LockInLogic(GenericLogic):
         if self.module_state() == 'locked':
             self._stop_reader_wait()
 
+        # Disconnect signals
         self._sigNextDataFrame.disconnect()
         self._delay.sigGetMeasurePoint.disconnect()
 
         self._data_rate = self.data_rate
         return
 
+    @QtCore.Slot()
     def _init_data_pos_x_y(self):
-        self.data_pos_x_y = np.zeros([4, 1])
+        """Init array for time-dependent measurements"""
+        self.data_pos_x_y = np.array([[], [], [], []])  # TODO: There should be a better way to do it
 
     @QtCore.Slot()
     def test_signal_1(self):
@@ -126,8 +131,8 @@ class LockInLogic(GenericLogic):
         [x, y] = self._lock_in.getData()
         r = np.sqrt(x**2 + y**2)
         read_val = [pos, r, x, y]
-        self.log.info(f"Something triggered me on the lock_in side! btw {read_val}")
-        self.data_pos_x_y = np.hstack((self.data_pos_x_y, np.expand_dims(read_val,1)))
+        # self.log.info(f"Something triggered me on the lock_in side! btw {read_val}")
+        self.data_pos_x_y = np.hstack((self.data_pos_x_y, np.expand_dims(read_val, 1)))
 
     @property
     def all_settings(self):

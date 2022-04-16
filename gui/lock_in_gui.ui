@@ -87,8 +87,8 @@
     <bool>false</bool>
    </attribute>
    <addaction name="start_trace_Action"/>
-   <addaction name="record_trace_Action"/>
    <addaction name="start_measurements_Action"/>
+   <addaction name="save_data_Action"/>
   </widget>
   <widget class="QDockWidget" name="settings_DockWidget">
    <property name="sizePolicy">
@@ -100,7 +100,7 @@
    <property name="minimumSize">
     <size>
      <width>80</width>
-     <height>30</height>
+     <height>38</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -218,6 +218,18 @@
    </property>
    <property name="toolTip">
     <string>Start_measurements</string>
+   </property>
+  </action>
+  <action name="save_data_Action">
+   <property name="icon">
+    <iconset>
+     <normaloff>../artwork/icons/qudiTheme/22x22/record-counter.png</normaloff>../artwork/icons/qudiTheme/22x22/record-counter.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save </string>
+   </property>
+   <property name="toolTip">
+    <string>Save currently displayed curves to daily directory</string>
    </property>
   </action>
  </widget>
