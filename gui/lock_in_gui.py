@@ -54,7 +54,7 @@ class LockInGui(GUIBase):
     # declare connectors
     lockinlogic = Connector(interface='GenericLogic')
 
-    _use_antialias = ConfigOption('use_antialias', default=True)
+    _use_antialias = ConfigOption('use_antialias', default=False)
 
     sigStartCounter = QtCore.Signal()
     sigStopCounter = QtCore.Signal()
@@ -103,7 +103,7 @@ class LockInGui(GUIBase):
                             clipToView=True,
                             downsampleMethod='subsample',
                             autoDownsample=True,
-                            antialias=True)
+                            antialias=False)
 
         self._curve2 = self._trw.plot()
         self._curve2.setPen(palette.c2,
@@ -111,7 +111,7 @@ class LockInGui(GUIBase):
                             clipToView=True,
                             downsampleMethod='subsample',
                             autoDownsample=True,
-                            antialias=True)
+                            antialias=False)
 
         self._trace_spectrum.showAxis('top')
         self._trace_spectrum.showAxis('right')
@@ -119,27 +119,57 @@ class LockInGui(GUIBase):
         self._trace_spectrum.setLabel('bottom', 'Time', units='s')
         self._trace_spectrum.setLabel('left', 'Intensity (arb. units.)')
 
-        # X and Y channels spectrum
+
+        # R channel spectrum
+        self._rrw = self._mw.r_PlotWidget
+        self._r_spectrum = self._rrw.plotItem
+
+        self._curve_r = self._rrw.plot()
+        self._curve_r.setPen(palette.c3,
+                             width=1,
+                             # clipToView=True,
+                             # downsampleMethod='subsample',
+                             # autoDownsample=True,
+                             antialias=False)
+        # self._curve_r.setSymbol(symbol='o')
+
+        self._r_spectrum.showAxis('top')
+        self._r_spectrum.showAxis('right')
+
+        self._r_spectrum.setLabel('bottom', 'Delay line position', units='mm')
+        self._r_spectrum.setLabel('left', 'R (X^2 + Y^2)', units='V')
+
+        # X channel spectrum
+        self._xrw = self._mw.x_PlotWidget
+        self._x_spectrum = self._xrw.plotItem
+
+        self._curve_x = self._xrw.plot()
+        self._curve_x.setPen(palette.c2,
+                             width=1,
+                             # clipToView=True,
+                             # downsampleMethod='subsample',
+                             # autoDownsample=True,
+                             antialias=False)
+        # self._curve_x.setSymbol(symbol='o')
+
+        self._x_spectrum.showAxis('top')
+        self._x_spectrum.showAxis('right')
+
+        self._x_spectrum.setLabel('bottom', 'Delay line position', units='mm')
+        self._x_spectrum.setLabel('left', 'X lock-in channel', units='V')
+
+        # Y channel spectrum
         self._yrw = self._mw.y_PlotWidget
         self._y_spectrum = self._yrw.plotItem
 
         self._curve_y = self._yrw.plot()
         self._curve_y.setPen(palette.c1,
                              width=1,
-                             clipToView=True,
-                             downsampleMethod='subsample',
-                             autoDownsample=True,
-                             antialias=True)
-        self._curve_y.setSymbol(symbol='o')
-
-        self._curve_x = self._yrw.plot()
-        self._curve_x.setPen(palette.c2,
-                             width=3,
-                             clipToView=True,
-                             downsampleMethod='subsample',
-                             autoDownsample=True,
-                             antialias=True)
-        self._curve_x.setSymbol(symbol='o')
+                             # clipToView=True,
+                             # downsampleMethod='subsample',
+                             # autoDownsample=True,
+                             antialias=False)
+        # self._curve_y.setSymbol(symbol='o')
 
         self._y_spectrum.showAxis('top')
         self._y_spectrum.showAxis('right')
@@ -324,6 +354,10 @@ class LockInGui(GUIBase):
         Kinda same as above but for point-by point measurements.
         At some point should be merged with trace update, probably.
         """
+        self._curve_r.setData(
+            x=self._lock_in_logic.data_dict['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict['R (V)']
+        )
         self._curve_x.setData(
             x=self._lock_in_logic.data_dict['delay_position (mm)'],
             y=self._lock_in_logic.data_dict['X (V)']
