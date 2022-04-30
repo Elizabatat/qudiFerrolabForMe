@@ -20,6 +20,7 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 """
 import numpy as np
 import datetime as dt
+from collections import OrderedDict
 
 from core.module import Connector
 from logic.generic_logic import GenericLogic
@@ -66,6 +67,7 @@ class LockInLogic(GenericLogic):
 
         self._lock_in = None
         self._delay = None
+        self._save_logic = None
 
         # locking for thread safety
         self.threadlock = Mutex()
@@ -88,6 +90,7 @@ class LockInLogic(GenericLogic):
         """
         self._lock_in = self.lock_in()
         self._delay = self.delay_logic()
+        self._save_logic = self.savelogic()
 
         # Flag to stop the loop and process variables
         self._stop_requested = True
@@ -99,7 +102,7 @@ class LockInLogic(GenericLogic):
         self._sigNextDataFrame.connect(self.acquire_data_block, QtCore.Qt.QueuedConnection)
 
         # connecting external signal
-        self._delay.sigGetMeasurePoint.connect(self.test_signal_1)
+        self._delay.sigGetMeasurePoint.connect(self.record_measurement_point)
         self._delay.sigDoScan.connect(self._init_data_pos_x_y)
 
         settings = self.all_settings
@@ -121,18 +124,104 @@ class LockInLogic(GenericLogic):
 
     @QtCore.Slot()
     def _init_data_pos_x_y(self):
-        """Init array for time-dependent measurements"""
-        self.data_pos_x_y = np.array([[], [], [], []])  # TODO: There should be a better way to do it
+        """Init dictionary of arrays for time-dependent measurements"""
+        self.data_dict = dict({'delay_position (mm)': np.array([]),
+                               'R (V)': np.array([]),
+                               'X (V)': np.array([]),
+                               'Y (V)': np.array([])
+                               })
+        # TODO: this one is for fixed keys up to now, will be generalzied later
 
     @QtCore.Slot()
-    def test_signal_1(self):
-        """Some tests to """
-        pos = self._delay._position_mm
+    def record_measurement_point(self):
+        """Combines measurement data into an array and writes it to dictionary """
+        current_position = self._delay._position_mm
         [x, y] = self._lock_in.getData()
         r = np.sqrt(x**2 + y**2)
-        read_val = [pos, r, x, y]
-        # self.log.info(f"Something triggered me on the lock_in side! btw {read_val}")
-        self.data_pos_x_y = np.hstack((self.data_pos_x_y, np.expand_dims(read_val, 1)))
+        list_to_append = [current_position, r, x, y]
+        dat_dict = self.data_dict
+        for i, (k, v) in enumerate(dat_dict.items()):
+            dat_dict[k] = np.hstack((dat_dict[k], list_to_append[i]))
+        self.data_dict = dat_dict
+
+    def save_data(self, name_tag='', custom_header=None):
+        """
+        :param string name_tag: postfix name tag for saved filename.
+        :param OrderedDict custom_header:
+        :return:
+            This ordered dictionary is added to the default data file header. It allows arbitrary
+            additional experimental information to be included in the saved data file header.
+        """
+        filepath = self._save_logic.get_path_for_module(module_name='spectroscopy')
+
+        # TODO: introduce some real and additional parameters
+        parameters = OrderedDict()
+        parameters['Exposure (s)'] = 10
+        # parameters['Constant background (Counts)'] = self._constant_background
+        # parameters['CCD offset (nm)'] = self._ccd_offset_nm
+        # parameters['Is X-axis flipped'] = self._x_flipped
+        # parameters['Region of interest (ROI)'] = self._roi
+        # parameters['Position of monochromator (nm)'] = self._mono._current_wavelength_nm
+        # parameters['Excitation line (nm)'] = self._mono.laserline
+        # parameters['Laser power (mW)'] = self._laser_power_mW
+        # parameters['Magnetic field (T)'] = self._magnetic_field_T
+        # parameters['Arbitrary values'] = self._arbitrary_tag
+
+        # add any custom header params
+        if custom_header is not None:
+            for key in custom_header:
+                parameters[key] = custom_header[key]
+
+        # self._proceed_data_dict.popitem('Pixels')
+        data = self.data_dict
+
+        # data = OrderedDict()
+
+        # keys = ['delay_position (mm)', 'R (V)', 'X (V)', 'Y (V)']
+        # dat_dic = dict(zip(keys, pro))
+
+        # print(dat_dic)
+
+        # data = OrderedDict()
+        # x_axis_list = ['Pixels',
+        #                'Wavelength (nm)',
+        #                'Raman shift (cm-1)',
+        #                'Energy (eV)',
+        #                'Energy (meV)',
+        #                'Wavenumber (cm-1)',
+        #                'Frequency (THz)',
+        #                "Energy RELATIVE (meV)",
+        #                "Frequency RELATIVE (THz)"]
+        # y_axis_list = ['Counts', 'Counts / s', 'Counts / (s * mW)']
+
+        # if self._mode == '1D':
+        #     filelabel = 'spectrum'
+        #     data.update({k: v for (k, v) in pro.items() if k in x_axis_list})
+        #     data.update({k: v[0] for (k, v) in pro.items() if k in y_axis_list})  # v[0] for 1D representation
+        # else:
+        #     filelabel = 'image'
+        #     data.update({k: v for (k, v) in pro.items() if k in x_axis_list})
+        #     data['Counts'] = np.flipud(np.rot90(self._proceed_data_dict['Counts']))
+
+        # generate a name_tag using various experimental parameters
+        # name_tag = ''
+        # name_tag += str(self._acquisition_exposure) + 's_'
+        # name_tag += str(self._magnetic_field_T) + 'T_'
+        # name_tag += str(self._laser_power_mW) + 'mW_'
+        # name_tag += str(self._arbitrary_tag)
+        # name_tag.replace('.', 'p')
+
+        # # Add name_tag as postfix to filename
+        # if name_tag != '':
+        #     filelabel = filelabel + '_' + name_tag
+
+        self._save_logic.save_data(data,
+                                   filepath=filepath,
+                                   parameters=parameters
+                                   )
+                                    #
+                                    # filelabel=filelabel)
+        self.log.debug('Spectrum saved to:\n{0}'.format(filepath))
 
     @property
     def all_settings(self):

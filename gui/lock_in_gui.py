@@ -157,6 +157,7 @@ class LockInGui(GUIBase):
         # Connecting user interactions
         # Actions
         self._mw.start_trace_Action.triggered.connect(self.start_clicked)
+        self._mw.save_data_Action.triggered.connect(self.save_clicked)
 
         # Boxes
         self._mw.trace_window_DoubleSpinBox.editingFinished.connect(self.data_window_changed)
@@ -293,6 +294,11 @@ class LockInGui(GUIBase):
             self.sigStopCounter.emit()
         pass
 
+    def save_clicked(self):
+        """ Handling the save button to save the data into a file.
+        """
+        self._lock_in_logic.save_data()
+
     @QtCore.Slot()
     @QtCore.Slot(object, object)
     @QtCore.Slot(object, object, object, object)
@@ -319,12 +325,12 @@ class LockInGui(GUIBase):
         At some point should be merged with trace update, probably.
         """
         self._curve_x.setData(
-            x=self._lock_in_logic.data_pos_x_y[0],
-            y=self._lock_in_logic.data_pos_x_y[2]
+            x=self._lock_in_logic.data_dict['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict['X (V)']
         )
         self._curve_y.setData(
-            x=self._lock_in_logic.data_pos_x_y[0],
-            y=self._lock_in_logic.data_pos_x_y[3]
+            x=self._lock_in_logic.data_dict['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict['Y (V)']
         )
 
     @QtCore.Slot()
