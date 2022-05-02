@@ -496,7 +496,7 @@
       <string>Power (mW):</string>
      </property>
     </widget>
-    <widget class="QDoubleSpinBox" name="pump_power_DoubleSpinBox_2">
+    <widget class="QDoubleSpinBox" name="probe_power_DoubleSpinBox">
      <property name="geometry">
       <rect>
        <x>130</x>
@@ -538,9 +538,9 @@
     <widget class="QLineEdit" name="arbitrary_tag_lineEdit">
      <property name="geometry">
       <rect>
-       <x>770</x>
+       <x>780</x>
        <y>30</y>
-       <width>241</width>
+       <width>231</width>
        <height>20</height>
       </rect>
      </property>
@@ -550,7 +550,7 @@
       <rect>
        <x>570</x>
        <y>0</y>
-       <width>111</width>
+       <width>121</width>
        <height>21</height>
       </rect>
      </property>
@@ -566,7 +566,7 @@
     <widget class="QDoubleSpinBox" name="laser_repetition_rate_DoubleSpinBox">
      <property name="geometry">
       <rect>
-       <x>680</x>
+       <x>690</x>
        <y>0</y>
        <width>62</width>
        <height>22</height>
@@ -587,7 +587,7 @@
     <widget class="QDoubleSpinBox" name="modulation_frequency_DoubleSpinBox">
      <property name="geometry">
       <rect>
-       <x>680</x>
+       <x>690</x>
        <y>30</y>
        <width>62</width>
        <height>22</height>
@@ -599,13 +599,13 @@
       </font>
      </property>
      <property name="decimals">
-      <number>0</number>
+      <number>3</number>
      </property>
      <property name="maximum">
       <double>500000.000000000000000</double>
      </property>
      <property name="value">
-      <double>500.000000000000000</double>
+      <double>0.500000000000000</double>
      </property>
     </widget>
     <widget class="QLabel" name="modulation_frequency_Label">
@@ -613,7 +613,7 @@
       <rect>
        <x>570</x>
        <y>30</y>
-       <width>111</width>
+       <width>121</width>
        <height>21</height>
       </rect>
      </property>
@@ -623,13 +623,13 @@
       </font>
      </property>
      <property name="text">
-      <string>Modulation freq. (Hz)</string>
+      <string>Modulation freq. (kHz):</string>
      </property>
     </widget>
     <widget class="QLabel" name="arbitrary_tag_Label">
      <property name="geometry">
       <rect>
-       <x>770</x>
+       <x>780</x>
        <y>0</y>
        <width>111</width>
        <height>21</height>

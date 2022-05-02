@@ -56,9 +56,18 @@ class LockInLogic(GenericLogic):
     _max_frame_rate = 10
     _calc_digital_freq = True
 
-    # status vars
+    # status vars with connection to lock-in GUI
     _trace_window_size = StatusVar('trace_window_size', default=6)
     _data_rate = StatusVar('data_rate', default=10)
+    _pump_power_mW = StatusVar(default=1)
+    _pump_wavelength_nm = StatusVar(default=532)
+    _pump_spot_diameter_um = StatusVar(default=50)
+    _probe_power_mW = StatusVar(default=1)
+    _probe_wavelength_nm = StatusVar(default=532)
+    _probe_spot_diameter_um = StatusVar(default=50)
+    _laser_repetition_rate_kHz = StatusVar(default=1)
+    _modulation_frequency_kHz = StatusVar(default=0.5)
+    _arbitrary_tag = StatusVar(default='_arb_tag_')
 
     def __init__(self, *args, **kwargs):
         """
@@ -156,16 +165,15 @@ class LockInLogic(GenericLogic):
 
         # TODO: introduce some real and additional parameters
         parameters = OrderedDict()
-        parameters['Exposure (s)'] = 10
-        # parameters['Constant background (Counts)'] = self._constant_background
-        # parameters['CCD offset (nm)'] = self._ccd_offset_nm
-        # parameters['Is X-axis flipped'] = self._x_flipped
-        # parameters['Region of interest (ROI)'] = self._roi
-        # parameters['Position of monochromator (nm)'] = self._mono._current_wavelength_nm
-        # parameters['Excitation line (nm)'] = self._mono.laserline
-        # parameters['Laser power (mW)'] = self._laser_power_mW
-        # parameters['Magnetic field (T)'] = self._magnetic_field_T
-        # parameters['Arbitrary values'] = self._arbitrary_tag
+        parameters['Pump power (mW)'] = self._pump_power_mW
+        parameters['Pump wavelength (nm)'] = self._pump_wavelength_nm
+        parameters['Pump spot diameter (um)'] = self._pump_spot_diameter_um
+        parameters['Probe power (mW)'] = self._probe_power_mW
+        parameters['Probe wavelength (nm)'] = self._probe_wavelength_nm
+        parameters['Probe spot diameter (um)'] = self._probe_spot_diameter_um
+        parameters['Laser repetition rate (kHz)'] = self._laser_repetition_rate_kHz
+        parameters['Modulation frequency (kHz)'] = self._modulation_frequency_kHz
+        parameters['Arbitrary values'] = self._arbitrary_tag
 
         # add any custom header params
         if custom_header is not None:
@@ -204,23 +212,21 @@ class LockInLogic(GenericLogic):
         #     data['Counts'] = np.flipud(np.rot90(self._proceed_data_dict['Counts']))
 
         # generate a name_tag using various experimental parameters
-        # name_tag = ''
-        # name_tag += str(self._acquisition_exposure) + 's_'
-        # name_tag += str(self._magnetic_field_T) + 'T_'
-        # name_tag += str(self._laser_power_mW) + 'mW_'
-        # name_tag += str(self._arbitrary_tag)
-        # name_tag.replace('.', 'p')
+        name_tag = ''
+        name_tag += 'pump_' + str(self._pump_wavelength_nm) + '_nm_'
+        name_tag += 'probe_' + str(self._probe_wavelength_nm) + '_nm_'
+        name_tag += str(self._arbitrary_tag)
+        name_tag.replace('.', 'p')
 
-        # # Add name_tag as postfix to filename
+        # Add name_tag as postfix to filename
         # if name_tag != '':
         #     filelabel = filelabel + '_' + name_tag
 
         self._save_logic.save_data(data,
                                    filepath=filepath,
-                                   parameters=parameters
+                                   parameters=parameters,
+                                   filelabel=name_tag
                                    )
-                                    #
-                                    # filelabel=filelabel)
         self.log.debug('Spectrum saved to:\n{0}'.format(filepath))
 
     @property

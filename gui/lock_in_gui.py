@@ -183,15 +183,35 @@ class LockInGui(GUIBase):
         self.update_settings()
         self.update_data()
 
+        # load spinBoxes states
+        self._mw.pump_power_DoubleSpinBox.setValue(self._lock_in_logic._pump_power_mW)
+        self._mw.pump_wavelength_DoubleSpinBox.setValue(self._lock_in_logic._pump_wavelength_nm)
+        self._mw.pump_spot_diameter_DoubleSpinBox.setValue(self._lock_in_logic._pump_spot_diameter_um)
+        self._mw.probe_power_DoubleSpinBox.setValue(self._lock_in_logic._probe_power_mW)
+        self._mw.probe_wavelength_DoubleSpinBox.setValue(self._lock_in_logic._probe_wavelength_nm)
+        self._mw.probe_spot_diameter_DoubleSpinBox.setValue(self._lock_in_logic._probe_spot_diameter_um)
+        self._mw.laser_repetition_rate_DoubleSpinBox.setValue(self._lock_in_logic._laser_repetition_rate_kHz)
+        self._mw.modulation_frequency_DoubleSpinBox.setValue(self._lock_in_logic._modulation_frequency_kHz)
+        self._mw.arbitrary_tag_lineEdit.setText(self._lock_in_logic._arbitrary_tag)
+
         #####################
         # Connecting user interactions
         # Actions
         self._mw.start_trace_Action.triggered.connect(self.start_clicked)
         self._mw.save_data_Action.triggered.connect(self.save_clicked)
 
-        # Boxes
+        # connect Boxes
         self._mw.trace_window_DoubleSpinBox.editingFinished.connect(self.data_window_changed)
         self._mw.data_rate_DoubleSpinBox.editingFinished.connect(self.data_rate_changed)
+        self._mw.pump_power_DoubleSpinBox.editingFinished.connect(self.pump_power_changed)
+        self._mw.pump_wavelength_DoubleSpinBox.editingFinished.connect(self.pump_wavelength_changed)
+        self._mw.pump_spot_diameter_DoubleSpinBox.editingFinished.connect(self.pump_spot_diameter_changed)
+        self._mw.probe_power_DoubleSpinBox.editingFinished.connect(self.probe_power_changed)
+        self._mw.probe_wavelength_DoubleSpinBox.editingFinished.connect(self.probe_wavelength_changed)
+        self._mw.probe_spot_diameter_DoubleSpinBox.editingFinished.connect(self.probe_spot_diameter_changed)
+        self._mw.laser_repetition_rate_DoubleSpinBox.editingFinished.connect(self.laser_repetition_rate_changed)
+        self._mw.modulation_frequency_DoubleSpinBox.editingFinished.connect(self.modulation_frequency_changed)
+        self._mw.arbitrary_tag_lineEdit.editingFinished.connect(self.arbitrary_tag_changed)
 
         ###################
         # Starting the physical measurements
@@ -227,18 +247,30 @@ class LockInGui(GUIBase):
         """ Deactivate the module properly """
         # FIXME: !
 
+        # disconnect local GUI signals
         self.sigStartCounter.disconnect()
         self.sigStopCounter.disconnect()
         # self.sigStartRecording.disconnect()
         # self.sigStopRecording.disconnect()
         self.sigSettingsChanged.disconnect()
 
-        self._mw.data_rate_DoubleSpinBox.editingFinished.disconnect()
-        self._mw.trace_window_DoubleSpinBox.editingFinished.disconnect()
-
+        # disconnect signals from logic
         self._lock_in_logic.sigDataChanged.disconnect()
         self._lock_in_logic.sigSettingsChanged.disconnect()
         self._lock_in_logic.sigStatusChanged.disconnect()
+
+        # disconnect spinBoxes
+        self._mw.data_rate_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.trace_window_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.pump_power_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.pump_wavelength_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.pump_spot_diameter_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.probe_power_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.probe_wavelength_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.probe_spot_diameter_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.laser_repetition_rate_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.modulation_frequency_DoubleSpinBox.editingFinished.disconnect()
+        self._mw.arbitrary_tag_lineEdit.editingFinished.disconnect()
 
         self._mw.close()
 
@@ -267,6 +299,7 @@ class LockInGui(GUIBase):
 
         self._mw.data_rate_DoubleSpinBox.setEnabled(not running)
         self._mw.trace_window_DoubleSpinBox.setEnabled(not running)
+        self._mw.pump_power_DoubleSpinBox.setEnabled(not running)
 
     @QtCore.Slot()
     def data_window_changed(self):
@@ -274,7 +307,6 @@ class LockInGui(GUIBase):
         """
         val = self._mw.trace_window_DoubleSpinBox.value()
         self.sigSettingsChanged.emit({'trace_window_size': val})
-        return
 
     @QtCore.Slot()
     def data_rate_changed(self):
@@ -282,7 +314,33 @@ class LockInGui(GUIBase):
         """
         val = self._mw.data_rate_DoubleSpinBox.value()
         self.sigSettingsChanged.emit({'data_rate': val})
-        return
+
+    def pump_power_changed(self):
+        self._lock_in_logic._pump_power_mW = self._mw.pump_power_DoubleSpinBox.value()
+
+    def pump_wavelength_changed(self):
+        self._lock_in_logic._pump_wavelength_nm = self._mw.pump_wavelength_DoubleSpinBox.value()
+
+    def pump_spot_diameter_changed(self):
+        self._lock_in_logic._pump_spot_diameter_um = self._mw.pump_spot_diameter_DoubleSpinBox.value()
+
+    def probe_power_changed(self):
+        self._lock_in_logic._probe_power_mW = self._mw.probe_power_DoubleSpinBox.value()
+
+    def probe_wavelength_changed(self):
+        self._lock_in_logic._probe_wavelength_nm = self._mw.probe_wavelength_DoubleSpinBox.value()
+
+    def probe_spot_diameter_changed(self):
+        self._lock_in_logic._probe_spot_diameter_um = self._mw.probe_spot_diameter_DoubleSpinBox.value()
+
+    def laser_repetition_rate_changed(self):
+        self._lock_in_logic._laser_repetition_rate_kHz = self._mw.laser_repetition_rate_DoubleSpinBox.value()
+
+    def modulation_frequency_changed(self):
+        self._lock_in_logic._modulation_frequency_kHz = self._mw.modulation_frequency_DoubleSpinBox.value()
+
+    def arbitrary_tag_changed(self):
+        self._lock_in_logic._arbitrary_tag = self._mw.arbitrary_tag_lineEdit.text()
 
     @QtCore.Slot()
     @QtCore.Slot(dict)
@@ -298,8 +356,12 @@ class LockInGui(GUIBase):
             self._mw.data_rate_DoubleSpinBox.blockSignals(True)
             self._mw.data_rate_DoubleSpinBox.setValue(settings_dict['data_rate'])
             self._mw.data_rate_DoubleSpinBox.blockSignals(False)
+        # if 'pump_power_mW' in settings_dict:
+        #     self._mw.pump_power_DoubleSpinBox.blockSignals(True)
+        #     self._mw.pump_power_DoubleSpinBox.setValue(settings_dict['pump_power_mW'])
+        #     self._mw.pump_power_DoubleSpinBox.blockSignals(False)
 
-        self.apply_channel_settings(update_logic=False)
+        # self.apply_channel_settings(update_logic=False)
         return
 
     @QtCore.Slot()
@@ -312,11 +374,13 @@ class LockInGui(GUIBase):
 
         self._mw.trace_window_DoubleSpinBox.setEnabled(False)
         self._mw.data_rate_DoubleSpinBox.setEnabled(False)
+        self._mw.pump_power_DoubleSpinBox.setEnabled(False)
 
         if self._mw.start_trace_Action.isChecked():
             # TODO: get some settings from
             settings = {'trace_window_size': self._mw.trace_window_DoubleSpinBox.value(),
-                        'data_rate': self._mw.data_rate_DoubleSpinBox.value()
+                        'data_rate': self._mw.data_rate_DoubleSpinBox.value(),
+                        'pump_power_mW': self._mw.pump_power_DoubleSpinBox.value()
                         }
             self.sigSettingsChanged.emit(settings)
             self.sigStartCounter.emit()
@@ -367,64 +431,64 @@ class LockInGui(GUIBase):
             y=self._lock_in_logic.data_dict['Y (V)']
         )
 
-    @QtCore.Slot()
-    def apply_channel_settings(self, update_logic=True):
-        """
-        """
-        # channels = tuple(ch for ch, w in self._csd_widgets.items() if w['checkbox1'].isChecked())
-        # av_channels = tuple(ch for ch, w in self._csd_widgets.items() if
-        #                     w['checkbox2'].isChecked() and ch in channels)
-        # Update combobox
-        # self._mw.curr_value_comboBox.blockSignals(True)
-        # self._mw.curr_value_comboBox.clear()
-        # self._mw.curr_value_comboBox.addItem('None')
-        # self._mw.curr_value_comboBox.addItems(['average {0}'.format(ch) for ch in av_channels])
-        # self._mw.curr_value_comboBox.addItems(channels)
-        # if self._current_value_channel is None:
-        #     self._mw.curr_value_comboBox.setCurrentIndex(0)
-        # else:
-        #     index = self._mw.curr_value_comboBox.findText(self._current_value_channel)
-        #     if index < 0:
-        #         self._mw.curr_value_comboBox.setCurrentIndex(0)
-        #         self._current_value_channel = None
-        #     else:
-        #         self._mw.curr_value_comboBox.setCurrentIndex(index)
-        # self._mw.curr_value_comboBox.blockSignals(False)
-        # self.current_value_channel_changed()
-
-        # Update plot widget axes
-        # ch_list = self._time_series_logic.active_channels
-        # digital_channels = tuple(ch for ch in ch_list if ch.type == StreamChannelType.DIGITAL)
-        # analog_channels = tuple(ch for ch in ch_list if ch.type == StreamChannelType.ANALOG)
-        # self._channels_per_axis = list()
-        # if digital_channels:
-        #     self._channels_per_axis.append(tuple(ch.name for ch in digital_channels))
-        #     self._pw.setLabel('left', 'Digital Channels', units=digital_channels[0].unit)
-        # if analog_channels:
-        #     self._channels_per_axis.append(tuple(ch.name for ch in analog_channels))
-        #     axis = 'right' if digital_channels else 'left'
-        #     self._pw.setLabel(axis, 'Analog Channels', units=analog_channels[0].unit)
-        # if analog_channels and digital_channels:
-        #     self._pw.showAxis('right')
-        # else:
-        #     self._pw.hideAxis('right')
-
-        # Update view selection dialog
-        # for chnl, widgets in self._vsd_widgets.items():
-        #     # Hide corresponding view selection
-        #     visible = chnl in channels
-        #     av_visible = chnl in av_channels
-        #     widgets['label'].setVisible(visible)
-        #     widgets['checkbox1'].setVisible(visible)
-        #     widgets['checkbox2'].setVisible(visible)
-        #     widgets['checkbox2'].setEnabled(av_visible)
-        #     # hide/show corresponding plot curves
-        #     self._toggle_channel_data_plot(chnl, visible, av_visible)
-
-        # if update_logic:
-        # self.sigSettingsChanged.emit(
-        # {'active_channels': channels, 'averaged_channels': av_channels})
-        return
+    # @QtCore.Slot()
+    # def apply_channel_settings(self, update_logic=True):
+    #     """
+    #     """
+    #     # channels = tuple(ch for ch, w in self._csd_widgets.items() if w['checkbox1'].isChecked())
+    #     # av_channels = tuple(ch for ch, w in self._csd_widgets.items() if
+    #     #                     w['checkbox2'].isChecked() and ch in channels)
+    #     # Update combobox
+    #     # self._mw.curr_value_comboBox.blockSignals(True)
+    #     # self._mw.curr_value_comboBox.clear()
+    #     # self._mw.curr_value_comboBox.addItem('None')
+    #     # self._mw.curr_value_comboBox.addItems(['average {0}'.format(ch) for ch in av_channels])
+    #     # self._mw.curr_value_comboBox.addItems(channels)
+    #     # if self._current_value_channel is None:
+    #     #     self._mw.curr_value_comboBox.setCurrentIndex(0)
+    #     # else:
+    #     #     index = self._mw.curr_value_comboBox.findText(self._current_value_channel)
+    #     #     if index < 0:
+    #     #         self._mw.curr_value_comboBox.setCurrentIndex(0)
+    #     #         self._current_value_channel = None
+    #     #     else:
+    #     #         self._mw.curr_value_comboBox.setCurrentIndex(index)
+    #     # self._mw.curr_value_comboBox.blockSignals(False)
+    #     # self.current_value_channel_changed()
+    #
+    #     # Update plot widget axes
+    #     # ch_list = self._time_series_logic.active_channels
+    #     # digital_channels = tuple(ch for ch in ch_list if ch.type == StreamChannelType.DIGITAL)
+    #     # analog_channels = tuple(ch for ch in ch_list if ch.type == StreamChannelType.ANALOG)
+    #     # self._channels_per_axis = list()
+    #     # if digital_channels:
+    #     #     self._channels_per_axis.append(tuple(ch.name for ch in digital_channels))
+    #     #     self._pw.setLabel('left', 'Digital Channels', units=digital_channels[0].unit)
+    #     # if analog_channels:
+    #     #     self._channels_per_axis.append(tuple(ch.name for ch in analog_channels))
+    #     #     axis = 'right' if digital_channels else 'left'
+    #     #     self._pw.setLabel(axis, 'Analog Channels', units=analog_channels[0].unit)
+    #     # if analog_channels and digital_channels:
+    #     #     self._pw.showAxis('right')
+    #     # else:
+    #     #     self._pw.hideAxis('right')
+    #
+    #     # Update view selection dialog
+    #     # for chnl, widgets in self._vsd_widgets.items():
+    #     #     # Hide corresponding view selection
+    #     #     visible = chnl in channels
+    #     #     av_visible = chnl in av_channels
+    #     #     widgets['label'].setVisible(visible)
+    #     #     widgets['checkbox1'].setVisible(visible)
+    #     #     widgets['checkbox2'].setVisible(visible)
+    #     #     widgets['checkbox2'].setEnabled(av_visible)
+    #     #     # hide/show corresponding plot curves
+    #     #     self._toggle_channel_data_plot(chnl, visible, av_visible)
+    #
+    #     # if update_logic:
+    #     # self.sigSettingsChanged.emit(
+    #     # {'active_channels': channels, 'averaged_channels': av_channels})
+    #     return
 
     # def update_data(self):
     #     """ The function that grabs the data and sends it to the plot.
