@@ -202,15 +202,6 @@ class LockInLogic(GenericLogic):
         #                "Frequency RELATIVE (THz)"]
         # y_axis_list = ['Counts', 'Counts / s', 'Counts / (s * mW)']
 
-        # if self._mode == '1D':
-        #     filelabel = 'spectrum'
-        #     data.update({k: v for (k, v) in pro.items() if k in x_axis_list})
-        #     data.update({k: v[0] for (k, v) in pro.items() if k in y_axis_list})  # v[0] for 1D representation
-        # else:
-        #     filelabel = 'image'
-        #     data.update({k: v for (k, v) in pro.items() if k in x_axis_list})
-        #     data['Counts'] = np.flipud(np.rot90(self._proceed_data_dict['Counts']))
-
         # generate a name_tag using various experimental parameters
         name_tag = ''
         name_tag += 'pump_' + str(self._pump_wavelength_nm) + '_nm_'

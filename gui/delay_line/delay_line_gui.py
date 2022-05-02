@@ -55,6 +55,7 @@ class DelayLineGui(GUIBase):
 
     # declaring signals
     sigMoveTo = QtCore.Signal(float)
+
     # sigDoScan = QtCore.Signal()
 
     # sigDelayLineStopped = QtCore.Signal()
@@ -79,6 +80,7 @@ class DelayLineGui(GUIBase):
         self.show()
 
         self.update_position()
+        self.update_full_scan_time()
 
         # load states of spinboxes
         self._mw.start_scan_mm_doubleSpinBox.setValue(self._delay_logic._start_scan_mm)
@@ -156,7 +158,12 @@ class DelayLineGui(GUIBase):
     def update_position(self):
         self._mw.delay_position_mm_doubleSpinBox.setValue(self._delay_logic.get_pos())
 
-    def calculate_full_scan_time(self):
+    def update_full_scan_time(self):
+        scan_time = (abs(self._mw.start_scan_mm_doubleSpinBox.value() - self._mw.end_scan_mm_doubleSpinBox.value()) /
+                     self._mw.step_mm_doubleSpinBox.value() *
+                     self._mw.wait_time_s_doubleSpinBox.value() * self._mw.number_points_spinBox.value() *
+                     self._mw.number_scans_spinBox.value()) / 60
+        self._mw.full_time_scan_label.setText(f'Full scan will take {scan_time:.1f} min.')
         pass
 
     def do_scan(self):
@@ -205,75 +212,47 @@ class DelayLineGui(GUIBase):
         old_parameter = self._delay_logic._position_mm
         if old_parameter != self._mw.delay_position_mm_doubleSpinBox.value():
             self.sigMoveTo.emit(self._mw.delay_position_mm_doubleSpinBox.value())
-            self.log.info(f"Changing position from {old_parameter} to {self._mw.delay_position_mm_doubleSpinBox.value()} (mm)")
+            self.log.info(
+                f"Changing position from {old_parameter} to {self._mw.delay_position_mm_doubleSpinBox.value()} (mm)")
 
     def start_scan_changed(self):
         old_parameter = self._delay_logic._start_scan_mm
         if old_parameter != self._mw.start_scan_mm_doubleSpinBox.value():
             self._delay_logic._start_scan_mm = self._mw.start_scan_mm_doubleSpinBox.value()
             self.log.info(f"Changing start scan from {old_parameter} to {self._delay_logic._start_scan_mm} (mm)")
+        self.update_full_scan_time()
 
     def end_scan_changed(self):
         old_parameter = self._delay_logic._end_scan_mm
         if old_parameter != self._mw.end_scan_mm_doubleSpinBox.value():
             self._delay_logic._end_scan_mm = self._mw.end_scan_mm_doubleSpinBox.value()
             self.log.info(f"Changing start scan from {old_parameter} to {self._delay_logic._end_scan_mm} (mm)")
+        self.update_full_scan_time()
 
     def step_changed(self):
         old_parameter = self._delay_logic._step_mm
         if old_parameter != self._mw.step_mm_doubleSpinBox.value():
             self._delay_logic._step_mm = self._mw.step_mm_doubleSpinBox.value()
             self.log.info(f"Changing step distance from {old_parameter} to {self._delay_logic._step_mm} (mm)")
+        self.update_full_scan_time()
 
     def wait_time_changed(self):
         old_parameter = self._delay_logic._wait_time_s
         if old_parameter != self._mw.wait_time_s_doubleSpinBox.value():
             self._delay_logic._wait_time_s = self._mw.wait_time_s_doubleSpinBox.value()
             self.log.info(f"Changing acquisition time from {old_parameter} to {self._delay_logic._wait_time_s} (s)")
+        self.update_full_scan_time()
 
     def number_points_changed(self):
         old_parameter = self._delay_logic._number_points
         if old_parameter != self._mw.number_points_spinBox.value():
             self._delay_logic._number_points = self._mw.number_points_spinBox.value()
             self.log.info(f"Changing number of points from {old_parameter} to {self._delay_logic._number_points}")
+        self.update_full_scan_time()
 
     def number_scans_changed(self):
         old_parameter = self._delay_logic._number_scans
         if old_parameter != self._mw.number_scans_spinBox.value():
             self._delay_logic._number_scans = self._mw.number_scans_spinBox.value()
             self.log.info(f"Changing number of scans from {old_parameter} to {self._delay_logic._number_scans}")
-
-#     def update_angle(self):
-#         # self.angle_doubleSpinBox.setValue(self.pol_logic.get_pos({self.axis})[self.axis])
-#         pass
-# class PolarizationWidget(QtWidgets.QWidget):
-#     """ A widget that shows all data associated to a polarization rotator axis.
-#     """
-#     def __init__(self, axis, logic):
-#         """ Create a switch widget.
-#           @param string axis: axis for widget, taken from logic
-#           @param module? logic: reference to polarization control logic module
-#         """
-#         # Get the path to the *.ui file
-#         this_dir = os.path.dirname(__file__)
-#         ui_file = os.path.join(this_dir, 'ui_polarization_widget.ui')
-#
-#         # Load it
-#         super().__init__()
-#         uic.loadUi(ui_file, self)
-#
-#         # self.axis = axis
-#         # self.pol_logic = logic
-#
-#         # correct state at start
-#         # self.angle_doubleSpinBox.setValue(self.pol_logic.get_pos({self.axis})[self.axis])
-#
-#         # user actions
-#         # self.pol_logic.signal_rotation_finished.connect(self.update_angle)
-#         # self.angle_doubleSpinBox.editingFinished.connect(self.angle_changed)
-#         # self.set_zero_pushButton.clicked.connect(self.set_zero)
-
-#     def set_zero(self):
-#         # self.pol_logic.calibrate({self.axis})
-#         # self.angle_doubleSpinBox.setValue(self.pol_logic.get_pos({self.axis})[self.axis])
-#         pass
+        self.update_full_scan_time()

@@ -7,8 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>355</height>
+    <height>255</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>qudi: Delay line</string>
@@ -49,10 +55,16 @@
    <addaction name="update_Action"/>
   </widget>
   <widget class="QDockWidget" name="dockWidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="minimumSize">
     <size>
      <width>380</width>
-     <height>280</height>
+     <height>180</height>
     </size>
    </property>
    <attribute name="dockWidgetArea">
@@ -63,7 +75,7 @@
      <property name="geometry">
       <rect>
        <x>140</x>
-       <y>40</y>
+       <y>20</y>
        <width>100</width>
        <height>22</height>
       </rect>
@@ -93,7 +105,7 @@
      <property name="geometry">
       <rect>
        <x>260</x>
-       <y>40</y>
+       <y>20</y>
        <width>100</width>
        <height>22</height>
       </rect>
@@ -123,7 +135,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>40</y>
+       <y>20</y>
        <width>100</width>
        <height>22</height>
       </rect>
@@ -153,7 +165,7 @@
      <property name="geometry">
       <rect>
        <x>140</x>
-       <y>120</y>
+       <y>70</y>
        <width>100</width>
        <height>22</height>
       </rect>
@@ -183,7 +195,7 @@
      <property name="geometry">
       <rect>
        <x>260</x>
-       <y>120</y>
+       <y>70</y>
        <width>100</width>
        <height>22</height>
       </rect>
@@ -213,7 +225,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>120</y>
+       <y>70</y>
        <width>100</width>
        <height>22</height>
       </rect>
@@ -239,7 +251,7 @@
        <x>20</x>
        <y>0</y>
        <width>100</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="font">
@@ -260,7 +272,7 @@
        <x>140</x>
        <y>0</y>
        <width>100</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="font">
@@ -281,7 +293,7 @@
        <x>260</x>
        <y>0</y>
        <width>100</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="font">
@@ -300,9 +312,9 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>80</y>
+       <y>50</y>
        <width>100</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="font">
@@ -321,9 +333,9 @@
      <property name="geometry">
       <rect>
        <x>140</x>
-       <y>80</y>
+       <y>50</y>
        <width>100</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="font">
@@ -342,9 +354,9 @@
      <property name="geometry">
       <rect>
        <x>260</x>
-       <y>80</y>
+       <y>50</y>
        <width>100</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="font">
@@ -363,9 +375,9 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>160</y>
+       <y>100</y>
        <width>100</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="font">
@@ -384,7 +396,7 @@
      <property name="geometry">
       <rect>
        <x>20</x>
-       <y>200</y>
+       <y>120</y>
        <width>100</width>
        <height>22</height>
       </rect>
@@ -402,10 +414,10 @@
     <widget class="QLabel" name="full_time_scan_label">
      <property name="geometry">
       <rect>
-       <x>130</x>
-       <y>160</y>
-       <width>121</width>
-       <height>31</height>
+       <x>140</x>
+       <y>120</y>
+       <width>221</width>
+       <height>21</height>
       </rect>
      </property>
      <property name="font">
