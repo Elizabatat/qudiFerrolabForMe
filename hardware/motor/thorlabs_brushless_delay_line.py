@@ -114,7 +114,7 @@ class thorlabsDelay(Base,MotorInterface):
         self._max_pos = float(str(self._channel_handle.get_MotorDeviceSettings().get_Physical().MaxPosUnit))
         return [self._min_pos, self._max_pos]
 
-    def get_pos(self, param_list=None):
+    def get_pos(self):
         return float(str(self._channel_handle.get_Position()))
 
     def get_status(self, param_list=None):
@@ -126,9 +126,10 @@ class thorlabsDelay(Base,MotorInterface):
     def move_abs(self, position_mm):
         if self.is_running:
             self.log.warning('Unable to move. Already moving.')
-            return 0
+            return -1
 
         self._is_running = True
+        print(position_mm)
         self._channel_handle.MoveTo(Decimal(position_mm), 60000)
         return 0
 
@@ -179,7 +180,7 @@ class thorlabsDelay(Base,MotorInterface):
         self._controller_handle.Disconnect()
 
     def wait_until_done(self):
-        if self._channel_handle.IsDeviceBusy():
+        while self._channel_handle.IsDeviceBusy:
             time.sleep(0.05)
 
     def wait(self, wait_s):

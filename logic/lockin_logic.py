@@ -139,6 +139,12 @@ class LockInLogic(GenericLogic):
                                'X (V)': np.array([]),
                                'Y (V)': np.array([])
                                })
+        self.data_dict_avg = dict({'delay_position (mm)': np.array([]),
+                                   'R (V)': np.array([]),
+                                   'X (V)': np.array([]),
+                                   'Y (V)': np.array([])
+                                   })
+        # self.log.info('im clean')
         # TODO: this one is for fixed keys up to now, will be generalzied later
 
     @QtCore.Slot()
@@ -146,12 +152,32 @@ class LockInLogic(GenericLogic):
         """Combines measurement data into an array and writes it to dictionary """
         current_position = self._delay._position_mm
         [x, y] = self._lock_in.getData()
-        r = np.sqrt(x**2 + y**2)
+        r = np.sqrt(x ** 2 + y ** 2)
         list_to_append = [current_position, r, x, y]
         dat_dict = self.data_dict
         for i, (k, v) in enumerate(dat_dict.items()):
             dat_dict[k] = np.hstack((dat_dict[k], list_to_append[i]))
         self.data_dict = dat_dict
+
+        self.avg_signal_points(self.data_dict)  # calling this to update dict with avg values
+
+    def avg_signal_points(self, raw_data_dict):
+        """Performs averaging using the last few points with
+         the same position on the delay line"""
+        delays = raw_data_dict['delay_position (mm)']
+        if len(delays) == 1:
+            for k, v in self.data_dict_avg.items():
+                self.data_dict_avg[k] = raw_data_dict[k]
+            return 0
+        if delays[-1] == delays[-2]:
+            ind = np.unique(delays, return_index=True)[1][-1:]  # index for the last same elements
+            for k, v in self.data_dict_avg.items():
+                self.data_dict_avg[k][-1] = np.mean([raw_data_dict[k][ind[0]:]])
+            # return data_dict_avg
+        else:
+            for k, v in self.data_dict_avg.items():
+                self.data_dict_avg[k] = np.append(self.data_dict_avg[k], raw_data_dict[k][-1])
+            # return data_dict_avg
 
     def save_data(self, name_tag='', custom_header=None):
         """

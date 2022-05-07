@@ -54,7 +54,7 @@ class LockInGui(GUIBase):
     # declare connectors
     lockinlogic = Connector(interface='GenericLogic')
 
-    _use_antialias = ConfigOption('use_antialias', default=False)
+    _use_antialias = ConfigOption('use_antialias', default=True)
 
     sigStartCounter = QtCore.Signal()
     sigStopCounter = QtCore.Signal()
@@ -119,19 +119,17 @@ class LockInGui(GUIBase):
         self._trace_spectrum.setLabel('bottom', 'Time', units='s')
         self._trace_spectrum.setLabel('left', 'Intensity (arb. units.)')
 
-
         # R channel spectrum
         self._rrw = self._mw.r_PlotWidget
         self._r_spectrum = self._rrw.plotItem
 
-        self._curve_r = self._rrw.plot()
-        self._curve_r.setPen(palette.c3,
-                             width=1,
-                             # clipToView=True,
-                             # downsampleMethod='subsample',
-                             # autoDownsample=True,
-                             antialias=False)
-        # self._curve_r.setSymbol(symbol='o')
+        self._curve_r = self._rrw.plot(pen=None, symbol='o', symbolPen=palette.c1, symbolBrush=None, symbolSize=7)
+        self._curve_r.setAlpha(0.5, False)
+
+        self._curve_r_avg = self._rrw.plot()  # Draw lines for averaged one
+        self._curve_r_avg.setPen(palette.c1,
+                                 width=3,
+                                 antialias=False)
 
         self._r_spectrum.showAxis('top')
         self._r_spectrum.showAxis('right')
@@ -143,14 +141,13 @@ class LockInGui(GUIBase):
         self._xrw = self._mw.x_PlotWidget
         self._x_spectrum = self._xrw.plotItem
 
-        self._curve_x = self._xrw.plot()
-        self._curve_x.setPen(palette.c2,
-                             width=1,
-                             # clipToView=True,
-                             # downsampleMethod='subsample',
-                             # autoDownsample=True,
-                             antialias=False)
-        # self._curve_x.setSymbol(symbol='o')
+        self._curve_x = self._xrw.plot(pen=None, symbol='o', symbolPen=palette.c2, symbolBrush=None, symbolSize=7)
+        self._curve_x.setAlpha(0.5, False)
+
+        self._curve_x_avg = self._xrw.plot()
+        self._curve_x_avg.setPen(palette.c2,
+                                 width=3,
+                                 antialias=False)
 
         self._x_spectrum.showAxis('top')
         self._x_spectrum.showAxis('right')
@@ -162,14 +159,13 @@ class LockInGui(GUIBase):
         self._yrw = self._mw.y_PlotWidget
         self._y_spectrum = self._yrw.plotItem
 
-        self._curve_y = self._yrw.plot()
-        self._curve_y.setPen(palette.c1,
-                             width=1,
-                             # clipToView=True,
-                             # downsampleMethod='subsample',
-                             # autoDownsample=True,
-                             antialias=False)
-        # self._curve_y.setSymbol(symbol='o')
+        self._curve_y = self._yrw.plot(pen=None, symbol='o', symbolPen=palette.c3, symbolBrush=None, symbolSize=7)
+        self._curve_y.setAlpha(0.5, False)
+
+        self._curve_y_avg = self._yrw.plot()
+        self._curve_y_avg.setPen(palette.c3,
+                                 width=3,
+                                 antialias=False)
 
         self._y_spectrum.showAxis('top')
         self._y_spectrum.showAxis('right')
@@ -422,13 +418,27 @@ class LockInGui(GUIBase):
             x=self._lock_in_logic.data_dict['delay_position (mm)'],
             y=self._lock_in_logic.data_dict['R (V)']
         )
+        self._curve_r_avg.setData(
+            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict_avg['R (V)']
+        )
+
         self._curve_x.setData(
             x=self._lock_in_logic.data_dict['delay_position (mm)'],
             y=self._lock_in_logic.data_dict['X (V)']
         )
+        self._curve_x_avg.setData(
+            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict_avg['X (V)']
+        )
+
         self._curve_y.setData(
             x=self._lock_in_logic.data_dict['delay_position (mm)'],
             y=self._lock_in_logic.data_dict['Y (V)']
+        )
+        self._curve_y_avg.setData(
+            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict_avg['Y (V)']
         )
 
     # @QtCore.Slot()
