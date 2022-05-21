@@ -248,10 +248,17 @@ class LockInLogic(GenericLogic):
         #     filelabel = filelabel + '_' + name_tag
 
         self._save_logic.save_data(data,
+                                   filepath=filepath+'\\raw\\',
+                                   parameters=parameters,
+                                   filelabel=name_tag+'_raw'
+                                   )
+
+        self._save_logic.save_data(self.data_dict_avg,
                                    filepath=filepath,
                                    parameters=parameters,
                                    filelabel=name_tag
                                    )
+
         self.log.debug('Spectrum saved to:\n{0}'.format(filepath))
 
     @property
