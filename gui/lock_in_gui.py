@@ -99,7 +99,7 @@ class LockInGui(GUIBase):
 
         self._curve1 = self._trw.plot()
         self._curve1.setPen(palette.c1,
-                            width=1,
+                            width=3,
                             clipToView=True,
                             downsampleMethod='subsample',
                             autoDownsample=True,
@@ -107,7 +107,7 @@ class LockInGui(GUIBase):
 
         self._curve2 = self._trw.plot()
         self._curve2.setPen(palette.c2,
-                            width=1,
+                            width=3,
                             clipToView=True,
                             downsampleMethod='subsample',
                             autoDownsample=True,
@@ -190,6 +190,14 @@ class LockInGui(GUIBase):
         self._mw.modulation_frequency_DoubleSpinBox.setValue(self._lock_in_logic._modulation_frequency_kHz)
         self._mw.arbitrary_tag_lineEdit.setText(self._lock_in_logic._arbitrary_tag)
 
+        # load radio button states
+        if self._lock_in_logic._measurements_type == 'REFLECTION':
+            self._mw.reflection_radioButton.setChecked(True)
+        elif self._lock_in_logic._measurements_type == 'BALANCE':
+            self._mw.balance_radioButton.setChecked(True)
+        else:
+            self.log.error('Something wrong with radio buttons')
+
         #####################
         # Connecting user interactions
         # Actions
@@ -208,6 +216,10 @@ class LockInGui(GUIBase):
         self._mw.laser_repetition_rate_DoubleSpinBox.editingFinished.connect(self.laser_repetition_rate_changed)
         self._mw.modulation_frequency_DoubleSpinBox.editingFinished.connect(self.modulation_frequency_changed)
         self._mw.arbitrary_tag_lineEdit.editingFinished.connect(self.arbitrary_tag_changed)
+
+        # connect radio buttons
+        self._mw.reflection_radioButton.toggled.connect(self.measurements_type_changed)
+        self._mw.balance_radioButton.toggled.connect(self.measurements_type_changed)
 
         ###################
         # Starting the physical measurements
@@ -310,6 +322,16 @@ class LockInGui(GUIBase):
         """
         val = self._mw.data_rate_DoubleSpinBox.value()
         self.sigSettingsChanged.emit({'data_rate': val})
+
+    def measurements_type_changed(self):
+        """Called when either one of the radio buttons pressed and changes
+        specific status var in logic responsible for saving type of measurements in file name"""
+        if self._mw.reflection_radioButton.isChecked():
+            self._lock_in_logic._measurements_type = 'REFLECTION'
+        elif self._mw.balance_radioButton.isChecked():
+            self._lock_in_logic._measurements_type = 'BALANCE'
+        else:
+            pass
 
     def pump_power_changed(self):
         self._lock_in_logic._pump_power_mW = self._mw.pump_power_DoubleSpinBox.value()

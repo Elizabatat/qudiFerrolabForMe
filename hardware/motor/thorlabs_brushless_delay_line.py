@@ -33,6 +33,10 @@ from System import String
 from System import Decimal
 from System.Collections import *
 
+# The weird import is due to the fact that we have to import Kinesis first
+# and it was kinda impossible to import also, kinesis path is hardcoded
+# TODO: make kinesis import better somehow!
+
 sys.path.append(r'C:\Program Files\Thorlabs\Kinesis')
 clr.AddReference("Thorlabs.MotionControl.DeviceManagerCLI")
 clr.AddReference("Thorlabs.MotionControl.Benchtop.BrushlessMotorCLI")
@@ -129,7 +133,6 @@ class thorlabsDelay(Base,MotorInterface):
             return -1
 
         self._is_running = True
-        print(position_mm)
         self._channel_handle.MoveTo(Decimal(position_mm), 60000)
         return 0
 

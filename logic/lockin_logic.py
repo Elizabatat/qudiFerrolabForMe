@@ -67,6 +67,7 @@ class LockInLogic(GenericLogic):
     _probe_spot_diameter_um = StatusVar(default=50)
     _laser_repetition_rate_kHz = StatusVar(default=1)
     _modulation_frequency_kHz = StatusVar(default=0.5)
+    _measurements_type = StatusVar(default='REFLECTION')
     _arbitrary_tag = StatusVar(default='_arb_tag_')
 
     def __init__(self, *args, **kwargs):
@@ -230,8 +231,15 @@ class LockInLogic(GenericLogic):
 
         # generate a name_tag using various experimental parameters
         name_tag = ''
-        name_tag += 'pump_' + str(self._pump_wavelength_nm) + '_nm_'
-        name_tag += 'probe_' + str(self._probe_wavelength_nm) + '_nm_'
+        if self._measurements_type == 'REFLECTION':
+            name_tag += 'REF_'
+        elif self._measurements_type == 'BALANCE':
+            name_tag += 'BAL_'
+        else:
+            pass
+        name_tag += 'pmp_pwr_' + str(self._pump_power_mW) + '_mW_'
+        # name_tag += 'pump_' + str(self._pump_wavelength_nm) + '_nm_'
+        # name_tag += 'probe_' + str(self._probe_wavelength_nm) + '_nm_'
         name_tag += str(self._arbitrary_tag)
         name_tag.replace('.', 'p')
 
