@@ -140,14 +140,13 @@ class DelayLineLogic(GenericLogic):
 
             self.sigStatusChanged.emit(True)
 
+            # precalculate array for sleep in short segments of 0.1 s for nice stop_scan functionality
+            sleep_array = np.append(np.full(int(self._wait_time_s // 0.1), 0.1), self._wait_time_s % 0.1)
+
+            # precalculate array for scan points
             linspace = np.linspace(self._start_scan_mm, self._start_scan_mm + self._step_mm *
                                    (np.floor(abs(self._start_scan_mm - self._end_scan_mm)/self._step_mm)),
                                    int(np.floor(abs(self._start_scan_mm-self._end_scan_mm)/self._step_mm))+1)
-
-            # np.around(np.arange(self._start_scan_mm,
-            #                     self._end_scan_mm + self._step_mm,
-            #                     self._step_mm,
-            #                     dtype=np.float32), 2)
 
             # TODO: refactor this shit with ifs
             # TODO: think about more correct generation of the intervals (include endpoint without overshooting)
@@ -155,11 +154,13 @@ class DelayLineLogic(GenericLogic):
                 for position in linspace.tolist():
                     self._move_abs_internal(position)
                     for point in range(self._number_points):
-                        if not self._stop_requested:  # moved into inner loop to halt it sooner
-                            time.sleep(self._wait_time_s)
-                            # self.log.info(self.get_pos())
-                            # self.log.info(f"I'm in the scan {scan} at {position} position, and at {point} point")
+                        for sleep_segment in sleep_array:  # inner loop for sleep in short segments
+                            if self._stop_requested:
+                                break
+                            time.sleep(sleep_segment)
+                        else:
                             self.sigGetMeasurePoint.emit()
+                        break
 
             self.module_state.unlock()
 
