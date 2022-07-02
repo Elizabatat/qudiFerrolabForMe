@@ -156,11 +156,14 @@ class DelayLineLogic(GenericLogic):
                     for point in range(self._number_points):
                         for sleep_segment in sleep_array:  # inner loop for sleep in short segments
                             if self._stop_requested:
-                                break
+                                self.log.info('breaked')
+                                self.module_state.unlock()
+                                self.sigStatusChanged.emit(False)
+                                return 1
                             time.sleep(sleep_segment)
                         else:
                             self.sigGetMeasurePoint.emit()
-                        break
+                        # break
 
             self.module_state.unlock()
 

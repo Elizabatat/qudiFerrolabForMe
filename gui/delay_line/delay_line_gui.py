@@ -100,7 +100,7 @@ class DelayLineGui(GUIBase):
 
         # Connect boxes
         self._mw.start_scan_mm_doubleSpinBox.editingFinished.connect(self.start_scan_changed)
-        self._mw.delay_position_mm_doubleSpinBox.editingFinished.connect(self.position_changed)
+        self._mw.delay_position_mm_doubleSpinBox.lineEdit().returnPressed.connect(self.position_changed)
         self._mw.end_scan_mm_doubleSpinBox.editingFinished.connect(self.end_scan_changed)
         self._mw.step_mm_doubleSpinBox.editingFinished.connect(self.step_changed)
         self._mw.wait_time_s_doubleSpinBox.editingFinished.connect(self.wait_time_changed)
@@ -128,7 +128,7 @@ class DelayLineGui(GUIBase):
 
         # Disconect boxes
         self._mw.start_scan_mm_doubleSpinBox.editingFinished.disconnect()
-        self._mw.delay_position_mm_doubleSpinBox.editingFinished.disconnect()
+        self._mw.delay_position_mm_doubleSpinBox.lineEdit().returnPressed.disconnect()
         self._mw.end_scan_mm_doubleSpinBox.editingFinished.disconnect()
         self._mw.step_mm_doubleSpinBox.editingFinished.disconnect()
         self._mw.wait_time_s_doubleSpinBox.editingFinished.disconnect()
