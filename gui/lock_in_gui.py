@@ -242,7 +242,7 @@ class LockInGui(GUIBase):
             self.update_settings, QtCore.Qt.QueuedConnection)
         self._lock_in_logic.sigStatusChanged.connect(
             self.update_status, QtCore.Qt.QueuedConnection)
-        self._lock_in_logic._delay.sigGetMeasurePoint.connect(
+        self._lock_in_logic.sigPointAcquired.connect(
             self.update_x_y, QtCore.Qt.QueuedConnection)
 
     def show(self):
@@ -289,7 +289,8 @@ class LockInGui(GUIBase):
         Function to ensure that the GUI displays the current measurement status
 
         @param bool running: True if the data trace streaming is running
-        @param bool recording: True if the data trace recording is active        """
+        @param bool recording: True if the data trace recording is active
+        """
 
         if running is None:
             running = self._lock_in_logic.module_state() == 'locked'
@@ -436,32 +437,35 @@ class LockInGui(GUIBase):
         Kinda same as above but for point-by point measurements.
         At some point should be merged with trace update, probably.
         """
+        # this lambda is used to mask zeroes in initialized arrays
+        mask_zeros = lambda arr: arr[arr != 0]
+
         self._curve_r.setData(
-            x=self._lock_in_logic.data_dict['delay_position (mm)'],
-            y=self._lock_in_logic.data_dict['R (V)']
+            x=mask_zeros(self._lock_in_logic.data_dict['delay_position (mm)'][0]),
+            y=mask_zeros(self._lock_in_logic.data_dict['R (V)'][0])
         )
-        self._curve_r_avg.setData(
-            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
-            y=self._lock_in_logic.data_dict_avg['R (V)']
-        )
+        # self._curve_r_avg.setData(
+        #     x=self._lock_in_logic.data_dict_avg['delay_position (mm)'][0],
+        #     y=self._lock_in_logic.data_dict_avg['R (V)'][0]
+        # )
 
         self._curve_x.setData(
-            x=self._lock_in_logic.data_dict['delay_position (mm)'],
-            y=self._lock_in_logic.data_dict['X (V)']
+            x=mask_zeros(self._lock_in_logic.data_dict['delay_position (mm)'].flatten()),
+            y=mask_zeros(self._lock_in_logic.data_dict['X (V)'].flatten())
         )
-        self._curve_x_avg.setData(
-            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
-            y=self._lock_in_logic.data_dict_avg['X (V)']
-        )
+        # self._curve_x_avg.setData(
+        #     x=self._lock_in_logic.data_dict_avg['delay_position (mm)'][0],
+        #     y=self._lock_in_logic.data_dict_avg['X (V)'][0]
+        # )
 
         self._curve_y.setData(
-            x=self._lock_in_logic.data_dict['delay_position (mm)'],
-            y=self._lock_in_logic.data_dict['Y (V)']
+            x=mask_zeros(self._lock_in_logic.data_dict['delay_position (mm)'][0]),
+            y=mask_zeros(self._lock_in_logic.data_dict['Y (V)'][0])
         )
-        self._curve_y_avg.setData(
-            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
-            y=self._lock_in_logic.data_dict_avg['Y (V)']
-        )
+        # self._curve_y_avg.setData(
+        #     x=self._lock_in_logic.data_dict_avg['delay_position (mm)'][0],
+        #     y=self._lock_in_logic.data_dict_avg['Y (V)'][0]
+        # )
 
     # @QtCore.Slot()
     # def apply_channel_settings(self, update_logic=True):

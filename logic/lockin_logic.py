@@ -46,8 +46,12 @@ class LockInLogic(GenericLogic):
     data = []
     data_pos_x_y = []
 
+    _current_point = 0
+    _current_scan = 0
+
     # declare signals
-    sigDataChanged = QtCore.Signal(object, object)
+    sigDataChanged = QtCore.Signal(object, object)  # only for trace
+    sigPointAcquired = QtCore.Signal()  # used to update date in lock_in_gui
     sigStatusChanged = QtCore.Signal(bool, bool)
     sigSettingsChanged = QtCore.Signal(dict)
     _sigNextDataFrame = QtCore.Signal()  # internal signal
@@ -111,8 +115,12 @@ class LockInLogic(GenericLogic):
 
         self._sigNextDataFrame.connect(self.acquire_data_block, QtCore.Qt.QueuedConnection)
 
+        # control variables for time-delay scan
+        self._current_point = 0
+        self._current_scan = 0
+
         # connecting external signal
-        self._delay.sigGetMeasurePoint.connect(self.record_measurement_point)
+        self._delay.sigGetMeasurePoint.connect(self.record_measurement_point, QtCore.Qt.QueuedConnection)
         self._delay.sigDoScan.connect(self._init_data_pos_x_y)
 
         settings = self.all_settings
@@ -135,11 +143,20 @@ class LockInLogic(GenericLogic):
     @QtCore.Slot()
     def _init_data_pos_x_y(self):
         """Init dictionary of arrays for time-dependent measurements"""
-        self.data_dict = dict({'delay_position (mm)': np.array([]),
-                               'R (V)': np.array([]),
-                               'X (V)': np.array([]),
-                               'Y (V)': np.array([])
+
+        self._current_point = 0
+        self._current_scan = 0
+
+        scans = self._delay._number_scans
+        # delay stops multiplied by number of points at each stop
+        points = self._delay.scan_points_total_length() * self._delay._number_points
+
+        self.data_dict = dict({'delay_position (mm)': np.zeros([scans, points]),
+                               'R (V)': np.zeros([scans, points]),
+                               'X (V)': np.zeros([scans, points]),
+                               'Y (V)': np.zeros([scans, points])
                                })
+
         self.data_dict_avg = dict({'delay_position (mm)': np.array([]),
                                    'R (V)': np.array([]),
                                    'X (V)': np.array([]),
@@ -155,12 +172,28 @@ class LockInLogic(GenericLogic):
         [x, y] = self._lock_in.getData()
         r = np.sqrt(x ** 2 + y ** 2)
         list_to_append = [current_position, r, x, y]
+        # dirty hack to avoid zero elements in the list_to_append
+        # this value is small enough to break things I guess
+        list_to_append = [1.0e-09 if x == 0 else x for x in list_to_append]
+
         dat_dict = self.data_dict
         for i, (k, v) in enumerate(dat_dict.items()):
-            dat_dict[k] = np.hstack((dat_dict[k], list_to_append[i]))
+            dat_dict[k][self._current_scan, self._current_point] = list_to_append[i]
         self.data_dict = dat_dict
 
-        self.avg_signal_points(self.data_dict)  # calling this to update dict with avg values
+        # self.log.info([self._current_point, self._current_scan])
+
+        if self._current_point >= self._delay.scan_points_total_length()*self._delay._number_points-1:
+            self._current_point = 0
+            self._current_scan += 1
+        else:
+            self._current_point += 1
+
+        # self.log.info([self._current_point, self._current_scan])
+
+        # self.avg_signal_points(self.data_dict)  # calling this to update dict with avg values
+
+        self.sigPointAcquired.emit()
 
     def avg_signal_points(self, raw_data_dict):
         """Performs averaging using the last few points with
@@ -267,6 +300,7 @@ class LockInLogic(GenericLogic):
                 'data_rate': self.data_rate}
 
     def _init_data_arrays(self):
+        """This is initialization for trace TODO: Rename"""
         window_size = self.trace_window_size_samples
         self._trace_data = np.zeros(
             [2, window_size])
@@ -510,3 +544,58 @@ class LockInLogic(GenericLogic):
     @property
     def data_recording_active(self):
         return self._data_recording_active
+
+    # OLD CODE BELOW
+
+    # @QtCore.Slot()
+    # def _init_data_pos_x_y(self):
+    #     """Init dictionary of arrays for time-dependent measurements"""
+    #     scans = self._delay._number_scans
+    #     # delay stops multiplied by number of points at each stop
+    #     points = self._delay.scan_points_total_length() * self._delay._number_points
+    #
+    #     self.data_dict = dict({'delay_position (mm)': np.zeros([scans, points]),
+    #                            'R (V)': np.zeros([scans, points]),
+    #                            'X (V)': np.zeros([scans, points]),
+    #                            'Y (V)': np.zeros([scans, points])
+    #                            })
+    #
+    #     self.data_dict_avg = dict({'delay_position (mm)': np.array([]),
+    #                                'R (V)': np.array([]),
+    #                                'X (V)': np.array([]),
+    #                                'Y (V)': np.array([])
+    #                                })
+    #     # self.log.info('im clean')
+    #     # TODO: this one is for fixed keys up to now, will be generalzied later
+    #
+    # @QtCore.Slot()
+    # def record_measurement_point(self):
+    #     """Combines measurement data into an array and writes it to dictionary """
+    #     current_position = self._delay._position_mm
+    #     [x, y] = self._lock_in.getData()
+    #     r = np.sqrt(x ** 2 + y ** 2)
+    #     list_to_append = [current_position, r, x, y]
+    #     dat_dict = self.data_dict
+    #     for i, (k, v) in enumerate(dat_dict.items()):
+    #         dat_dict[k] = np.hstack((dat_dict[k], list_to_append[i]))
+    #     self.data_dict = dat_dict
+    #
+    #     # self.avg_signal_points(self.data_dict)  # calling this to update dict with avg values
+    #
+    # def avg_signal_points(self, raw_data_dict):
+    #     """Performs averaging using the last few points with
+    #      the same position on the delay line"""
+    #     delays = raw_data_dict['delay_position (mm)']
+    #     if len(delays) == 1:
+    #         for k, v in self.data_dict_avg.items():
+    #             self.data_dict_avg[k] = raw_data_dict[k]
+    #         return 0
+    #     if delays[-1] == delays[-2]:
+    #         ind = np.unique(delays, return_index=True)[1][-1:]  # index for the last same elements
+    #         for k, v in self.data_dict_avg.items():
+    #             self.data_dict_avg[k][-1] = np.mean([raw_data_dict[k][ind[0]:]])
+    #         # return data_dict_avg
+    #     else:
+    #         for k, v in self.data_dict_avg.items():
+    #             self.data_dict_avg[k] = np.append(self.data_dict_avg[k], raw_data_dict[k][-1])
+    #         # return data_dict_avg

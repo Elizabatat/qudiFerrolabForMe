@@ -111,8 +111,7 @@ class DelayLineGui(GUIBase):
         self.sigMoveTo.connect(self._delay_logic.move_abs, QtCore.Qt.QueuedConnection)
 
         # Signals from logic
-        self._delay_logic.sigStatusChanged.connect(
-            self.update_status, QtCore.Qt.QueuedConnection)
+        self._delay_logic.sigStatusChanged.connect(self.update_status, QtCore.Qt.QueuedConnection)
         self._delay_logic.sigDoScan.connect(self._delay_logic.do_scan, QtCore.Qt.QueuedConnection)
 
     def on_deactivate(self):

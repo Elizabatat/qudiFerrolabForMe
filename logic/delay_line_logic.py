@@ -121,6 +121,14 @@ class DelayLineLogic(GenericLogic):
         # time.sleep(0.5)
         self._position_mm = self.get_pos()
 
+    def scan_points_total_length(self):
+        """Returns total number of points of the scan.
+            NOT MULTIPLIED BY NUMBER OR POINTS OR SCANS!"""
+        linspace = np.linspace(self._start_scan_mm, self._start_scan_mm + self._step_mm *
+                               (np.floor(abs(self._start_scan_mm - self._end_scan_mm) / self._step_mm)),
+                               int(np.floor(abs(self._start_scan_mm - self._end_scan_mm) / self._step_mm)) + 1)
+        return linspace.size
+
     @QtCore.Slot()
     def do_scan(self):
         """ Typical movement sequence for delay line in pump-probe experiments.
