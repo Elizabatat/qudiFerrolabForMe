@@ -118,14 +118,14 @@ class thorlabsDelay(Base,MotorInterface):
         self._max_pos = float(str(self._channel_handle.get_MotorDeviceSettings().get_Physical().MaxPosUnit))
         return [self._min_pos, self._max_pos]
 
-    def get_pos(self):
-        return float(str(self._channel_handle.get_Position()))
-
     def get_status(self, param_list=None):
         pass
 
     def get_velocity(self, param_list=None):
         pass
+
+    def get_pos(self):
+        return float(str(self._channel_handle.get_Position()))
 
     def move_abs(self, position_mm):
         if self.is_running:
@@ -133,7 +133,18 @@ class thorlabsDelay(Base,MotorInterface):
             return -1
 
         self._is_running = True
-        self._channel_handle.MoveTo(Decimal(position_mm), 60000)
+
+        # This is the dirty hack to move a very small distance ~1 um
+        # One movement is typically not enough to reach precice position
+        # Thus we wait a bit and move again TODO: dirty hack
+
+        for i in range(10):
+            if self.get_pos() != position_mm:
+                self._channel_handle.MoveTo(Decimal(position_mm), 60000)
+                self.wait_until_done()
+                time.sleep(0.05)
+            else:
+                break
         return 0
 
     def move_rel(self, rel_position_mm):

@@ -45,6 +45,7 @@ class LockInLogic(GenericLogic):
 
     data = []
     data_pos_x_y = []
+    data_raw = []
 
     _current_point = 0
     _current_scan = 0
@@ -151,10 +152,12 @@ class LockInLogic(GenericLogic):
         # delay stops multiplied by number of points at each stop
         points = self._delay.scan_points_total_length() * self._delay._number_points
 
-        self.data_dict = dict({'delay_position (mm)': np.zeros([scans, points]),
-                               'R (V)': np.zeros([scans, points]),
-                               'X (V)': np.zeros([scans, points]),
-                               'Y (V)': np.zeros([scans, points])
+        self.data_raw = np.zeros(shape=(4, scans, points), dtype='float64')
+
+        self.data_dict = dict({'delay_position (mm)': np.array([]),
+                               'R (V)': np.array([]),
+                               'X (V)': np.array([]),
+                               'Y (V)': np.array([])
                                })
 
         self.data_dict_avg = dict({'delay_position (mm)': np.array([]),
@@ -176,10 +179,11 @@ class LockInLogic(GenericLogic):
         # this value is small enough to break things I guess
         list_to_append = [1.0e-09 if x == 0 else x for x in list_to_append]
 
-        dat_dict = self.data_dict
-        for i, (k, v) in enumerate(dat_dict.items()):
-            dat_dict[k][self._current_scan, self._current_point] = list_to_append[i]
-        self.data_dict = dat_dict
+        self.data_raw[:, self._current_scan, self._current_point] = list_to_append
+        self.data_clean = np.split(self.data_raw[self.data_raw != 0], 4)
+
+        for i, k in enumerate(self.data_dict.keys()):
+            self.data_dict[k] = self.data_clean[i]
 
         # self.log.info([self._current_point, self._current_scan])
 
@@ -192,6 +196,8 @@ class LockInLogic(GenericLogic):
         # self.log.info([self._current_point, self._current_scan])
 
         # self.avg_signal_points(self.data_dict)  # calling this to update dict with avg values
+
+        self.avg_new(self.data_clean)
 
         self.sigPointAcquired.emit()
 
@@ -212,6 +218,20 @@ class LockInLogic(GenericLogic):
             for k, v in self.data_dict_avg.items():
                 self.data_dict_avg[k] = np.append(self.data_dict_avg[k], raw_data_dict[k][-1])
             # return data_dict_avg
+
+    def avg_new(self, data_flattened):
+        unique_delays = np.unique(data_flattened[0])
+        test_list = np.zeros((4, unique_delays.size))
+        test_list[0] = unique_delays
+        for i, delay in enumerate(unique_delays):
+            test_list[1, i] = np.mean(data_flattened[1][np.where(data_flattened[0] == delay)])
+            test_list[2, i] = np.mean(data_flattened[2][np.where(data_flattened[0] == delay)])
+            test_list[3, i] = np.mean(data_flattened[3][np.where(data_flattened[0] == delay)])
+
+        self.data_dict_avg['delay_position (mm)'] = unique_delays
+        self.data_dict_avg['R (V)'] = test_list[1]
+        self.data_dict_avg['X (V)'] = test_list[2]
+        self.data_dict_avg['Y (V)'] = test_list[3]
 
     def save_data(self, name_tag='', custom_header=None):
         """

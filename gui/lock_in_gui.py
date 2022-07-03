@@ -441,31 +441,31 @@ class LockInGui(GUIBase):
         mask_zeros = lambda arr: arr[arr != 0]
 
         self._curve_r.setData(
-            x=mask_zeros(self._lock_in_logic.data_dict['delay_position (mm)'][0]),
-            y=mask_zeros(self._lock_in_logic.data_dict['R (V)'][0])
+            x=self._lock_in_logic.data_dict['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict['R (V)']
         )
-        # self._curve_r_avg.setData(
-        #     x=self._lock_in_logic.data_dict_avg['delay_position (mm)'][0],
-        #     y=self._lock_in_logic.data_dict_avg['R (V)'][0]
-        # )
+        self._curve_r_avg.setData(
+            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict_avg['R (V)']
+        )
 
         self._curve_x.setData(
-            x=mask_zeros(self._lock_in_logic.data_dict['delay_position (mm)'].flatten()),
-            y=mask_zeros(self._lock_in_logic.data_dict['X (V)'].flatten())
+            x=self._lock_in_logic.data_dict['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict['X (V)']
         )
-        # self._curve_x_avg.setData(
-        #     x=self._lock_in_logic.data_dict_avg['delay_position (mm)'][0],
-        #     y=self._lock_in_logic.data_dict_avg['X (V)'][0]
-        # )
+        self._curve_x_avg.setData(
+            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict_avg['X (V)']
+        )
 
         self._curve_y.setData(
-            x=mask_zeros(self._lock_in_logic.data_dict['delay_position (mm)'][0]),
-            y=mask_zeros(self._lock_in_logic.data_dict['Y (V)'][0])
+            x=self._lock_in_logic.data_dict['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict['Y (V)']
         )
-        # self._curve_y_avg.setData(
-        #     x=self._lock_in_logic.data_dict_avg['delay_position (mm)'][0],
-        #     y=self._lock_in_logic.data_dict_avg['Y (V)'][0]
-        # )
+        self._curve_y_avg.setData(
+            x=self._lock_in_logic.data_dict_avg['delay_position (mm)'],
+            y=self._lock_in_logic.data_dict_avg['Y (V)']
+        )
 
     # @QtCore.Slot()
     # def apply_channel_settings(self, update_logic=True):
