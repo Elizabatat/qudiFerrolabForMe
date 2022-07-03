@@ -437,8 +437,6 @@ class LockInGui(GUIBase):
         Kinda same as above but for point-by point measurements.
         At some point should be merged with trace update, probably.
         """
-        # this lambda is used to mask zeroes in initialized arrays
-        mask_zeros = lambda arr: arr[arr != 0]
 
         self._curve_r.setData(
             x=self._lock_in_logic.data_dict['delay_position (mm)'],
