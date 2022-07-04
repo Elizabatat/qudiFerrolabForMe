@@ -43,10 +43,6 @@ class LockInLogic(GenericLogic):
     delay_logic = Connector(interface='GenericLogic')
     savelogic = Connector(interface='SaveLogic')
 
-    data = []
-    data_pos_x_y = []
-    data_raw = []
-
     _current_point = 0
     _current_scan = 0
 
@@ -152,7 +148,7 @@ class LockInLogic(GenericLogic):
         # delay stops multiplied by number of points at each stop
         points = self._delay.scan_points_total_length() * self._delay._number_points
 
-        self.data_raw = np.zeros(shape=(4, scans, points), dtype='float64')
+        self._data_raw = np.zeros(shape=(4, scans, points), dtype='float64')
 
         self.data_dict = dict({'delay_position (mm)': np.array([]),
                                'R (V)': np.array([]),
@@ -168,7 +164,10 @@ class LockInLogic(GenericLogic):
 
     @QtCore.Slot()
     def record_measurement_point(self):
-        """Combines measurement data into an array and writes it to dictionary """
+        """
+        Combines measurement data into an array and writes it to dictionary
+        """
+
         current_position = self._delay._position_mm
         [x, y] = self._lock_in.getData()
         r = np.sqrt(x ** 2 + y ** 2)
@@ -177,22 +176,24 @@ class LockInLogic(GenericLogic):
         # this value is small enough to break things I guess
         list_to_append = [1.0e-09 if x == 0 else x for x in list_to_append]
 
-        self.data_raw[:, self._current_scan, self._current_point] = list_to_append
-        self.data_clean = np.split(self.data_raw[self.data_raw != 0], 4)
+        self._data_raw[:, self._current_scan, self._current_point] = list_to_append
+        data_clean = np.split(self._data_raw[self._data_raw != 0], 4)
 
         for i, k in enumerate(self.data_dict.keys()):
-            self.data_dict[k] = self.data_clean[i]
+            self.data_dict[k] = data_clean[i]
 
-        if self._delay.scan_points_total_length()*self._delay._number_points-1 > self._current_point:
+        scans = self._delay._number_scans
+        points = self._delay.scan_points_total_length() * self._delay._number_points
+
+        if points-1 > self._current_point:
             self._current_point += 1
-        elif self._current_scan < self._delay._number_scans:
+        elif self._current_scan < scans:
             # condition below is to filter situation when number of scans becomes larger (numbering from 0)
-            if not (self._current_scan == self._delay._number_scans-1) \
-                    and (self._current_point == self._delay.scan_points_total_length()*self._delay._number_points-1):
+            if not self._current_scan == scans-1 and self._current_point == points-1:
                 self._current_point = 0
                 self._current_scan += 1
 
-        self.average_data(self.data_clean)
+        self.average_data(data_clean)
 
         self.sigPointAcquired.emit()
 
@@ -202,17 +203,16 @@ class LockInLogic(GenericLogic):
         As output it populates averaged data dictionary.
         """
         unique_delays = np.unique(data_flattened[0])
-        test_list = np.zeros((4, unique_delays.size))
-        test_list[0] = unique_delays
-        for i, delay in enumerate(unique_delays):
-            test_list[1, i] = np.mean(data_flattened[1][np.where(data_flattened[0] == delay)])
-            test_list[2, i] = np.mean(data_flattened[2][np.where(data_flattened[0] == delay)])
-            test_list[3, i] = np.mean(data_flattened[3][np.where(data_flattened[0] == delay)])
+        list_of_uniques = np.zeros((4, unique_delays.size))
+        list_of_uniques[0] = unique_delays
 
-        self.data_dict_avg['delay_position (mm)'] = unique_delays
-        self.data_dict_avg['R (V)'] = test_list[1]
-        self.data_dict_avg['X (V)'] = test_list[2]
-        self.data_dict_avg['Y (V)'] = test_list[3]
+        for i, delay in enumerate(unique_delays):
+            list_of_uniques[1, i] = np.mean(data_flattened[1][np.where(data_flattened[0] == delay)])
+            list_of_uniques[2, i] = np.mean(data_flattened[2][np.where(data_flattened[0] == delay)])
+            list_of_uniques[3, i] = np.mean(data_flattened[3][np.where(data_flattened[0] == delay)])
+
+        for i, k in enumerate(self.data_dict_avg):
+            self.data_dict_avg[k] = list_of_uniques[i]
 
     def save_data(self, name_tag='', custom_header=None):
         """
@@ -225,6 +225,7 @@ class LockInLogic(GenericLogic):
         filepath = self._save_logic.get_path_for_module(module_name='spectroscopy')
 
         # TODO: introduce some real and additional parameters
+        # TODO: human-readable format
         parameters = OrderedDict()
         parameters['Pump power (mW)'] = self._pump_power_mW
         parameters['Pump wavelength (nm)'] = self._pump_wavelength_nm
@@ -287,9 +288,10 @@ class LockInLogic(GenericLogic):
         data_dict_raw_for_output = {}
         for scan in range(self._current_scan+1):
             for t, k in enumerate(self.data_dict_avg.keys()):
-                data_dict_raw_for_output[k+'_'+str(scan)] = self.data_raw[t, scan][self.data_raw[t, scan] != 0]
+                data_dict_raw_for_output[k+'_'+str(scan)] = self._data_raw[t, scan][self._data_raw[t, scan] != 0]
         # Nonexistent data points (not yet measured, occurs when stop button is used) are saved as 'nan'
         # saves raw data, but splits it by number of scans creating additional columns
+
         self._save_logic.save_data(data_dict_raw_for_output,
                                    filepath=filepath+'\\raw\\',
                                    parameters=parameters,
