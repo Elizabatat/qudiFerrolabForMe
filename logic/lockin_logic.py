@@ -183,11 +183,14 @@ class LockInLogic(GenericLogic):
         for i, k in enumerate(self.data_dict.keys()):
             self.data_dict[k] = self.data_clean[i]
 
-        if self._current_point >= self._delay.scan_points_total_length()*self._delay._number_points-1:
-            self._current_point = 0
-            self._current_scan += 1
-        else:
+        if self._delay.scan_points_total_length()*self._delay._number_points-1 > self._current_point:
             self._current_point += 1
+        elif self._current_scan < self._delay._number_scans:
+            # condition below is to filter situation when number of scans becomes larger (numbering from 0)
+            if not (self._current_scan == self._delay._number_scans-1) \
+                    and (self._current_point == self._delay.scan_points_total_length()*self._delay._number_points-1):
+                self._current_point = 0
+                self._current_scan += 1
 
         self.average_data(self.data_clean)
 
@@ -239,7 +242,7 @@ class LockInLogic(GenericLogic):
                 parameters[key] = custom_header[key]
 
         # self._proceed_data_dict.popitem('Pixels')
-        data = self.data_dict
+        # data = self.data_dict_avg
 
         # data = OrderedDict()
 
@@ -278,12 +281,22 @@ class LockInLogic(GenericLogic):
         # if name_tag != '':
         #     filelabel = filelabel + '_' + name_tag
 
-        self._save_logic.save_data(data,
+        # for k in self.data_dict.keys():
+        #     self.data_dict[k] = np.transpose(np.split(self.data_dict[k], 2))
+
+        data_dict_raw_for_output = {}
+        for scan in range(self._current_scan+1):
+            for t, k in enumerate(self.data_dict_avg.keys()):
+                data_dict_raw_for_output[k+'_'+str(scan)] = self.data_raw[t, scan][self.data_raw[t, scan] != 0]
+        # Nonexistent data points (not yet measured, occurs when stop button is used) are saved as 'nan'
+        # saves raw data, but splits it by number of scans creating additional columns
+        self._save_logic.save_data(data_dict_raw_for_output,
                                    filepath=filepath+'\\raw\\',
                                    parameters=parameters,
                                    filelabel=name_tag+'_raw'
                                    )
 
+        # saves averaged (by points AND scans) data
         self._save_logic.save_data(self.data_dict_avg,
                                    filepath=filepath,
                                    parameters=parameters,
