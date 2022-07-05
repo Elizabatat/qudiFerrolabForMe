@@ -36,7 +36,6 @@
     <bool>false</bool>
    </attribute>
    <addaction name="start_trace_Action"/>
-   <addaction name="start_measurements_Action"/>
    <addaction name="save_data_Action"/>
   </widget>
   <widget class="QDockWidget" name="r_dockWidget">

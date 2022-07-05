@@ -46,12 +46,15 @@ class LockInLogic(GenericLogic):
     _current_point = 0
     _current_scan = 0
 
+    data_dict_avg = {}
+    data_dict_avg_last = {}
+
     # declare signals
     sigDataChanged = QtCore.Signal(object, object)  # only for trace
-    sigPointAcquired = QtCore.Signal()  # used to update date in lock_in_gui
-    sigStatusChanged = QtCore.Signal(bool, bool)
+    sigPointAcquired = QtCore.Signal()  # used to update data in GUI
+    sigStatusChanged = QtCore.Signal(bool, bool)  # first bool for trace, second for scan
     sigSettingsChanged = QtCore.Signal(dict)
-    _sigNextDataFrame = QtCore.Signal()  # internal signal
+    _sigNextDataFrame = QtCore.Signal()  # internal signal for trace
 
     # pseudo config options
     _max_frame_rate = 10
@@ -116,6 +119,9 @@ class LockInLogic(GenericLogic):
         self._current_point = 0
         self._current_scan = 0
 
+        self.data_dict_avg = {}
+        self.data_dict_avg_last = {}
+
         # connecting external signal
         self._delay.sigGetMeasurePoint.connect(self.record_measurement_point, QtCore.Qt.QueuedConnection)
         self._delay.sigDoScan.connect(self._init_data_pos_x_y)
@@ -139,7 +145,10 @@ class LockInLogic(GenericLogic):
 
     @QtCore.Slot()
     def _init_data_pos_x_y(self):
-        """Init dictionary of arrays for time-dependent measurements"""
+        """Initialization of the raw np arrays and dictionaries of arrays
+         for time-dependent measurements"""
+
+        self.sigStatusChanged.emit(False, True)
 
         self._current_point = 0
         self._current_scan = 0
@@ -149,6 +158,9 @@ class LockInLogic(GenericLogic):
         points = self._delay.scan_points_total_length() * self._delay._number_points
 
         self._data_raw = np.zeros(shape=(4, scans, points), dtype='float64')
+
+        # copy dictionary for plotting last curve, would be empty if it first measurement
+        self.data_dict_avg_last = self.data_dict_avg
 
         self.data_dict = dict({'delay_position (mm)': np.array([]),
                                'R (V)': np.array([]),
@@ -161,6 +173,11 @@ class LockInLogic(GenericLogic):
                                    'X (V)': np.array([]),
                                    'Y (V)': np.array([])
                                    })
+
+    # @QtCore.Slot()
+    # def doing_scan(self):
+    #     self.log.info('Im doing scan')
+    #     pass
 
     @QtCore.Slot()
     def record_measurement_point(self):
@@ -412,6 +429,37 @@ class LockInLogic(GenericLogic):
             self.start_reading()
         return settings
 
+    # At some point should
+
+    # @QtCore.Slot()
+    # def start_scanning(self):
+    #     """
+    #     Start scanning (moving delay line and reading points)
+    #     """
+    #
+    #     with self.threadlock:
+    #         if self.module_state() == 'locked':
+    #             self.log.warning('Data acquisition already running. "start_reading" call ignored.')
+    #             self.sigStatusChanged.emit(False, True)
+    #             return 0
+    #
+    #         self.module_state.lock()
+    #         self._stop_requested = False
+    #         self.sigStatusChanged.emit(False, True)
+    #
+    #     return 0
+    #
+    # @QtCore.Slot()
+    # def stop_scanning(self):
+    #     """
+    #     Stop scanning
+    #     """
+    #     with self.threadlock:
+    #         if self.module_state() == 'locked':
+    #             self.module_state.unlock()
+    #             self.sigStatusChanged.emit(False, False)
+    #     return 0
+
     @QtCore.Slot()
     def start_reading(self):
         """
@@ -420,16 +468,15 @@ class LockInLogic(GenericLogic):
         @return error: 0 is OK, -1 is error
         """
         with self.threadlock:
-            # Lock module
             if self.module_state() == 'locked':
                 self.log.warning('Data acquisition already running. "start_reading" call ignored.')
-                self.sigStatusChanged.emit(True, self._data_recording_active)
+                self.sigStatusChanged.emit(True, False)
                 return 0
 
             self.module_state.lock()
             self._stop_requested = False
 
-            self.sigStatusChanged.emit(True, self._data_recording_active)
+            self.sigStatusChanged.emit(True, False)
 
             if self._data_recording_active:
                 self._record_start_time = dt.datetime.now()
@@ -455,7 +502,6 @@ class LockInLogic(GenericLogic):
         with self.threadlock:
             if self.module_state() == 'locked':
                 self._stop_requested = True
-                # self.log.info("trace stopped")
         return 0
 
     @QtCore.Slot()

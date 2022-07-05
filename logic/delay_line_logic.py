@@ -40,7 +40,7 @@ class DelayLineLogic(GenericLogic):
 
     # declare signals
     # signalMovementFinished = QtCore.Signal()
-    sigStatusChanged = QtCore.Signal(bool)
+    sigStatusChanged = QtCore.Signal(bool)  # True - moving or busy
     sigGetMeasurePoint = QtCore.Signal()
     sigDoScan = QtCore.Signal()
     sigStopScan = QtCore.Signal()

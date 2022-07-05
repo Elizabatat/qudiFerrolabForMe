@@ -58,8 +58,8 @@ class LockInGui(GUIBase):
 
     sigStartCounter = QtCore.Signal()
     sigStopCounter = QtCore.Signal()
-    # sigStartRecording = QtCore.Signal()
-    # sigStopRecording = QtCore.Signal()
+    sigStartScanning = QtCore.Signal()
+    sigStopScanning = QtCore.Signal()
     sigSettingsChanged = QtCore.Signal(dict)
 
     _data = []
@@ -131,6 +131,13 @@ class LockInGui(GUIBase):
                                  width=3,
                                  antialias=False)
 
+        self._curve_r_avg_last = self._rrw.plot()  # Last averaged scan
+        self._curve_r_avg_last.setPen(palette.c1,
+                                 width=2,
+                                 antialias=False,
+                                 style=QtCore.Qt.DashLine)
+        self._curve_r_avg_last.setAlpha(0.5, False)
+
         self._r_spectrum.showAxis('top')
         self._r_spectrum.showAxis('right')
 
@@ -149,6 +156,13 @@ class LockInGui(GUIBase):
                                  width=3,
                                  antialias=False)
 
+        self._curve_x_avg_last = self._xrw.plot()  # Last averaged scan
+        self._curve_x_avg_last.setPen(palette.c2,
+                                 width=2,
+                                 antialias=False,
+                                 style=QtCore.Qt.DashLine)
+        self._curve_x_avg_last.setAlpha(0.5, False)
+
         self._x_spectrum.showAxis('top')
         self._x_spectrum.showAxis('right')
 
@@ -166,6 +180,13 @@ class LockInGui(GUIBase):
         self._curve_y_avg.setPen(palette.c3,
                                  width=3,
                                  antialias=False)
+
+        self._curve_y_avg_last = self._yrw.plot()  # Last averaged scan
+        self._curve_y_avg_last.setPen(palette.c3,
+                                 width=2,
+                                 antialias=False,
+                                 style=QtCore.Qt.DashLine)
+        self._curve_y_avg_last.setAlpha(0.5, False)
 
         self._y_spectrum.showAxis('top')
         self._y_spectrum.showAxis('right')
@@ -228,10 +249,10 @@ class LockInGui(GUIBase):
             self._lock_in_logic.start_reading, QtCore.Qt.QueuedConnection)
         self.sigStopCounter.connect(
             self._lock_in_logic.stop_reading, QtCore.Qt.QueuedConnection)
-        # self.sigStartRecording.connect(
-        #     self._lock_in_logic.start_recording, QtCore.Qt.QueuedConnection)
-        # self.sigStopRecording.connect(
-        #     self._lock_in_logic.stop_recording, QtCore.Qt.QueuedConnection)
+        self.sigStartScanning.connect(
+            self._lock_in_logic.start_scanning, QtCore.Qt.QueuedConnection)
+        self.sigStopScanning.connect(
+            self._lock_in_logic.stop_scanning, QtCore.Qt.QueuedConnection)
         self.sigSettingsChanged.connect(
             self._lock_in_logic.configure_settings, QtCore.Qt.QueuedConnection)
 
@@ -244,6 +265,7 @@ class LockInGui(GUIBase):
             self.update_status, QtCore.Qt.QueuedConnection)
         self._lock_in_logic.sigPointAcquired.connect(
             self.update_x_y, QtCore.Qt.QueuedConnection)
+        self._lock_in_logic._delay.sigStatusChanged.connect(self._propagate_delay_line_status)
 
     def show(self):
         """ Make window visible and put it above all other windows """
@@ -284,31 +306,55 @@ class LockInGui(GUIBase):
 
     @QtCore.Slot()
     @QtCore.Slot(bool, bool)
-    def update_status(self, running=None, recording=None):
+    def update_status(self, running=None, scanning=None):
         """
         Function to ensure that the GUI displays the current measurement status
 
         @param bool running: True if the data trace streaming is running
-        @param bool recording: True if the data trace recording is active
+        @param bool scanning: True if the point by point data is measuring
         """
 
         if running is None:
             running = self._lock_in_logic.module_state() == 'locked'
-        # if recording is None:
-        #     recording = self._l/ock_in_logic.data_recording_active
+        if scanning is None:
+            scanning = self._lock_in_logic.module_state() == 'locked'
 
-        self._mw.start_trace_Action.setChecked(running)
-        self._mw.start_trace_Action.setText('Stop trace' if running else 'Start trace')
-
-        # self._mw.record_trace_Action.setChecked(recording)
-        # self._mw.record_trace_Action.setText('Save recorded' if recording else 'Start recording')
-
-        self._mw.start_trace_Action.setEnabled(True)
-        # self._mw.record_trace_Action.setEnabled(running)
+        if running:
+            self.log.info('only running is triggered')
+            self._mw.start_trace_Action.setChecked(True)
+            self._mw.start_trace_Action.setEnabled(True)
+            self._mw.save_data_Action.setEnabled(False)
+        if scanning:
+            self.log.info('only scanning is triggered')
+            self._mw.start_trace_Action.setEnabled(False)
+            self._mw.save_data_Action.setEnabled(False)
+        if not (running or scanning):
+            self.log.info('neither are triggered')
+            self._mw.start_trace_Action.setEnabled(True)
+            self._mw.save_data_Action.setEnabled(True)
 
         self._mw.data_rate_DoubleSpinBox.setEnabled(not running)
         self._mw.trace_window_DoubleSpinBox.setEnabled(not running)
-        self._mw.pump_power_DoubleSpinBox.setEnabled(not running)
+
+        if any(self._lock_in_logic.data_dict_avg_last):
+            self._curve_r_avg_last.setData(
+                x=self._lock_in_logic.data_dict_avg_last['delay_position (mm)'],
+                y=self._lock_in_logic.data_dict_avg_last['R (V)']
+            )
+            self._curve_x_avg_last.setData(
+                x=self._lock_in_logic.data_dict_avg_last['delay_position (mm)'],
+                y=self._lock_in_logic.data_dict_avg_last['X (V)']
+            )
+            self._curve_y_avg_last.setData(
+                x=self._lock_in_logic.data_dict_avg_last['delay_position (mm)'],
+                y=self._lock_in_logic.data_dict_avg_last['Y (V)']
+            )
+
+    def _propagate_delay_line_status(self, cond=None):
+        """Helper function for propagation of the delay line state
+        """
+        if not cond:
+            self.update_status()
 
     @QtCore.Slot()
     def data_window_changed(self):
