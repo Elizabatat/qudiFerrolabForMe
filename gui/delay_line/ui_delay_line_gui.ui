@@ -49,7 +49,6 @@
    </attribute>
    <addaction name="separator"/>
    <addaction name="scan_Action"/>
-   <addaction name="stop_Action"/>
    <addaction name="separator"/>
    <addaction name="home_Action"/>
    <addaction name="update_Action"/>
@@ -465,9 +464,13 @@
    </property>
   </action>
   <action name="scan_Action">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset>
-     <normaloff>../../artwork/icons/qudiTheme/22x22/start-counter.png</normaloff>../../artwork/icons/qudiTheme/22x22/start-counter.png</iconset>
+     <normaloff>../../artwork/icons/qudiTheme/22x22/scan-xy-start.png</normaloff>
+     <normalon>../../artwork/icons/qudiTheme/22x22/stop-scan.png</normalon>../../artwork/icons/qudiTheme/22x22/scan-xy-start.png</iconset>
    </property>
    <property name="text">
     <string>Do scan</string>

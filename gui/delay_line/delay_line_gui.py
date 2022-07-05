@@ -80,7 +80,6 @@ class DelayLineGui(GUIBase):
         self.show()
 
         self.update_position()
-        self.update_full_scan_time()
 
         # load states of spinboxes
         self._mw.start_scan_mm_doubleSpinBox.setValue(self._delay_logic._start_scan_mm)
@@ -93,10 +92,10 @@ class DelayLineGui(GUIBase):
         # User actions
         self._mw.home_Action.triggered.connect(self.home)
         self._mw.update_Action.triggered.connect(self.update_position)
-        self._mw.scan_Action.triggered.connect(self.do_scan)
-        self._mw.stop_Action.triggered.connect(self.stop_scan)
+        self._mw.scan_Action.triggered.connect(self.start_scan_clicked)
+        self._mw.stop_Action.triggered.connect(self.start_scan_clicked)
 
-        # self.sigDelayLineStopped.connect(self.test_signal)
+        self.update_full_scan_time()
 
         # Connect boxes
         self._mw.start_scan_mm_doubleSpinBox.editingFinished.connect(self.start_scan_changed)
@@ -140,11 +139,11 @@ class DelayLineGui(GUIBase):
         # Add layout that we want to fill
         # self.layout = QtWidgets.QVBoxLayout(self.scrollArea)
 
-    def test_signal(self):
-        if self._mw.full_time_scan_label.isVisible():
-            self._mw.full_time_scan_label.setVisible(False)
-        else:
-            self._mw.full_time_scan_label.setVisible(True)
+    # def test_signal(self):
+    #     if self._mw.full_time_scan_label.isVisible():
+    #         self._mw.full_time_scan_label.setVisible(False)
+    #     else:
+    #         self._mw.full_time_scan_label.setVisible(True)
 
     def show(self):
         """Make sure that the window is visible and at the top.
@@ -165,22 +164,29 @@ class DelayLineGui(GUIBase):
         self._mw.full_time_scan_label.setText(f'Full scan will take {scan_time:.1f} min.')
         pass
 
-    def do_scan(self):
-        self._delay_logic.sigDoScan.emit()
-        # self._delay_logic.measurement_movement(
-        #                                        self._mw.start_scan_mm_doubleSpinBox.value(),
-        #                                        self._mw.end_scan_mm_doubleSpinBox.value(),
-        #                                        self._mw.step_mm_doubleSpinBox.value(),
-        #                                        self._mw.wait_time_s_doubleSpinBox.value(),
-        #                                        self._mw.number_points_spinBox.value(),
-        #                                        self._mw.number_scans_spinBox.value()
-        #                                        )
-        # self.update_position()
-        # self.sigDelayLineStopped.emit()
+    def start_scan_clicked(self):
+        if self._mw.scan_Action.isChecked():
+            self._delay_logic.sigDoScan.emit()
+        else:
+            self._delay_logic.sigStopScan.emit()
         pass
 
-    def stop_scan(self):
-        self._delay_logic.sigStopScan.emit()
+    # def do_scan(self):
+    #     self._delay_logic.sigDoScan.emit()
+    #     # self._delay_logic.measurement_movement(
+    #     #                                        self._mw.start_scan_mm_doubleSpinBox.value(),
+    #     #                                        self._mw.end_scan_mm_doubleSpinBox.value(),
+    #     #                                        self._mw.step_mm_doubleSpinBox.value(),
+    #     #                                        self._mw.wait_time_s_doubleSpinBox.value(),
+    #     #                                        self._mw.number_points_spinBox.value(),
+    #     #                                        self._mw.number_scans_spinBox.value()
+    #     #                                        )
+    #     # self.update_position()
+    #     # self.sigDelayLineStopped.emit()
+    #     pass
+
+    # def stop_scan(self):
+    #     self._delay_logic.sigStopScan.emit()
 
     @QtCore.Slot(bool)
     def update_status(self, moving=None):
@@ -201,8 +207,8 @@ class DelayLineGui(GUIBase):
 
         self._mw.home_Action.setEnabled(not moving)
         self._mw.update_Action.setEnabled(not moving)
-        self._mw.scan_Action.setEnabled(not moving)
-        self._mw.stop_Action.setEnabled(moving)
+
+        self._mw.scan_Action.setChecked(moving)
 
     # TODO: should refactor it to something like signal(dict) like in lock_in_gui.py
 

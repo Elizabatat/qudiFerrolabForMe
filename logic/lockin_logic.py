@@ -124,7 +124,7 @@ class LockInLogic(GenericLogic):
 
         # connecting external signal
         self._delay.sigGetMeasurePoint.connect(self.record_measurement_point, QtCore.Qt.QueuedConnection)
-        self._delay.sigDoScan.connect(self._init_data_pos_x_y)
+        self._delay.sigDoScan.connect(self._init_scan_data)
 
         settings = self.all_settings
         self.configure_settings(**settings)
@@ -144,7 +144,7 @@ class LockInLogic(GenericLogic):
         return
 
     @QtCore.Slot()
-    def _init_data_pos_x_y(self):
+    def _init_scan_data(self):
         """Initialization of the raw np arrays and dictionaries of arrays
          for time-dependent measurements"""
 
@@ -329,7 +329,7 @@ class LockInLogic(GenericLogic):
         return {'trace_window_size': self.trace_window_size,
                 'data_rate': self.data_rate}
 
-    def _init_data_arrays(self):
+    def _init_trace_data(self):
         """This is initialization for trace TODO: Rename"""
         window_size = self.trace_window_size_samples
         self._trace_data = np.zeros(
@@ -420,7 +420,7 @@ class LockInLogic(GenericLogic):
                     self._trace_window_size = new_val
 
             self._samples_per_frame = self.data_rate // self._max_frame_rate
-            self._init_data_arrays()
+            self._init_trace_data()
             settings = self.all_settings
             self.sigSettingsChanged.emit(settings)
             if not restart:
@@ -429,36 +429,35 @@ class LockInLogic(GenericLogic):
             self.start_reading()
         return settings
 
-    # At some point should
+    @QtCore.Slot()
+    def start_scanning(self):
+        """
+        Start scanning (moving delay line and reading points)
+        """
 
-    # @QtCore.Slot()
-    # def start_scanning(self):
-    #     """
-    #     Start scanning (moving delay line and reading points)
-    #     """
-    #
-    #     with self.threadlock:
-    #         if self.module_state() == 'locked':
-    #             self.log.warning('Data acquisition already running. "start_reading" call ignored.')
-    #             self.sigStatusChanged.emit(False, True)
-    #             return 0
-    #
-    #         self.module_state.lock()
-    #         self._stop_requested = False
-    #         self.sigStatusChanged.emit(False, True)
-    #
-    #     return 0
-    #
-    # @QtCore.Slot()
-    # def stop_scanning(self):
-    #     """
-    #     Stop scanning
-    #     """
-    #     with self.threadlock:
-    #         if self.module_state() == 'locked':
-    #             self.module_state.unlock()
-    #             self.sigStatusChanged.emit(False, False)
-    #     return 0
+        with self.threadlock:
+            if self.module_state() == 'locked':
+                self.log.warning('Data acquisition already running. "start_reading" call ignored.')
+                self.sigStatusChanged.emit(False, True)
+                return 0
+
+            self._init_scan_data()
+            self.module_state.lock()
+            self._stop_requested = False
+            self.sigStatusChanged.emit(False, True)
+
+        return 0
+
+    @QtCore.Slot()
+    def stop_scanning(self):
+        """
+        Stop scanning
+        """
+        with self.threadlock:
+            if self.module_state() == 'locked':
+                self.module_state.unlock()
+                self.sigStatusChanged.emit(False, False)
+        return 0
 
     @QtCore.Slot()
     def start_reading(self):

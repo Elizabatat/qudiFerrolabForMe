@@ -500,7 +500,7 @@ class TimeSeriesReaderLogic(GenericLogic):
             # self._data_rate = curr_settings['sample_rate'] / self._oversampling_factor
             #
             # self._samples_per_frame = int(round(self._data_rate / self._max_frame_rate))
-            # self._init_data_arrays()
+            # self._init_trace_data()
             # settings = self.all_settings
             # self.sigSettingsChanged.emit(settings)
 
