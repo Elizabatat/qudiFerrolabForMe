@@ -2,7 +2,7 @@
 
 """
 This file contains the hardware control of the delay line
-(in principle any motor, but tested only with brushless delay line LTS300/M
+(in principle any motor, but tested only with stepper LTS300/M
 controlled by integrated controller) via .NET communication protocol/software Kinesis.
 
 It is necessary to have Kinesis installed (maybe only .dlls, not yet tested)
@@ -171,7 +171,7 @@ class thorlabsDelay(Base, MotorInterface):
     def move_rel(self, rel_position_mm):
         if self.is_running:
             self.log.warning('Unable to move. Already moving.')
-            return 0
+            return -1
 
         self.move_abs(self.get_pos() + rel_position_mm)
         return 0
