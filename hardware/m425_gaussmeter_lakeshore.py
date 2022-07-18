@@ -22,7 +22,7 @@ Copyright (c) the qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import visa
+import pyvisa as visa
 import time
 from enum import Enum
 
@@ -77,7 +77,7 @@ class GaussmeterLakeshore(Base, SimpleDataInterface):
            controller_handel and channel selection procedures
         """
 
-        self.rm = visa.ResourceManager()
+        self.rm = visa.ResourceManager('@py')
         try:
             self._gaussmeter_handle = self.rm.open_resource(self._com_port_gaussmeter,
                                                             baud_rate=57600,

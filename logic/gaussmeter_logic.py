@@ -71,7 +71,7 @@ class GaussmeterLogic(GenericLogic):
         with self.threadlock:
             data = self._gaussmeter.getData()
             self.log.debug(f' Field is {data} T')
-            self._gaussmeter.wait(1)
+            # self._gaussmeter.wait(1)
             return data
 
     def run_data(self, n):

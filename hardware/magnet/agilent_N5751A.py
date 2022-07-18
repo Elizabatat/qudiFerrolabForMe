@@ -18,7 +18,7 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 import time
-import visa
+import pyvisa as visa
 
 from core.module import Base
 from core.configoption import ConfigOption
@@ -49,32 +49,49 @@ class N5751AgilentPowerSource(Base, ProcessControlInterface):
     # _current_max = ConfigOption('current_max', missing='error')
 
     def on_activate(self):
-        # """ Startup the module """
-        #
-        # rm = visa.ResourceManager()
-        # try:
-        #     self._inst = rm.open_resource(self._address)
-        # except visa.VisaIOError:
-        #     self.log.error('Could not connect to hardware. Please check the wires and the address.')
-        #
-        # self.model = self._query('*IDN?').split(',')[1]
-        #
-        # self._write("*RST;*CLS")
-        # time.sleep(3)
-        # self._query("*OPC?")
-        #
-        # self._write("INST P6V")
-        # self._write("VOLT 0")
-        # self._write("CURR {}".format(self._current_max))
-        #
-        # self._write("OUTP ON")
-        pass
+        self.connect()
 
     def on_deactivate(self):
-        pass
-        # """ Stops the module """
-        # self._write("OUTP OFF")
-        # self._inst.close()
+        self.disconnect()
+
+    def connect(self):
+        """Connect power source
+        """
+
+        self.rm = visa.ResourceManager()  # when there is no argument - Keysight IVI backend is used
+        try:
+            self._powersource_handle = self.rm.open_resource(self._com_port_powersource,
+                                                             read_termination='\n'
+                                                             )
+            self.log.info(f"Powersource {self._powersource_handle.query('*IDN?')} is connected")
+        except:
+            self.log.warning('Cannot connect to powersource! Check ports and power on the device!')
+
+    def disconnect(self):
+        self.output_off()
+        self._powersource_handle.close()
+
+    def output_on(self):
+        """Turn on output"""
+        self._powersource_handle.query('OUTP ON; *OPC?')
+
+    def output_off(self):
+        """Turn off output
+        in the
+        """
+        self._powersource_handle.query('OUTP OFF; *OPC?')
+
+    def get_voltage_v(self):
+        return float(self._powersource_handle.query('VOLT?'))
+
+    def set_voltage_v(self, voltage_v=0):
+        self._powersource_handle.query(f'VOLT {voltage_v}; *OPC?')
+
+    def get_current_a(self):
+        return float(self._powersource_handle.query('CURR?'))
+
+    def set_current_a(self, current_a=0):
+        self._powersource_handle.query(f'CURR {current_a}; *OPC?')
 
     def _write(self, cmd):
         """ Function to write command to hardware"""
