@@ -49,7 +49,10 @@ class N5751AgilentPowerSource(Base, ProcessControlInterface):
     # _current_max = ConfigOption('current_max', missing='error')
 
     def on_activate(self):
+        """We will assume that we will always work in constant current mode,
+        thus output voltage would be put to maximum (300 V) at start"""
         self.connect()
+        self._powersource_handle.query("VOLT 300; *OPC?")
 
     def on_deactivate(self):
         self.disconnect()

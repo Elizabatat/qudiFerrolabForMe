@@ -164,7 +164,6 @@ class SwitchLogic(GenericLogic):
     @QtCore.Slot(bool)
     def toggle_watchdog(self, enable):
         """
-
         @param bool enable:
         """
         enable = bool(enable)
