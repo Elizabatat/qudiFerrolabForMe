@@ -39,6 +39,8 @@ class ResistiveMagnetLogic(GenericLogic):
     magnetometer_logic = Connector(interface='GenericLogic')
     savelogic = Connector(interface='SaveLogic')
 
+    _last_current = 0.0
+
     # declare signals
     sigPolarityChangeRequested = QtCore.Signal(str, str)
 
@@ -46,6 +48,7 @@ class ResistiveMagnetLogic(GenericLogic):
     _magnet_calibration_path = ConfigOption('magnet_calibration_path', default=None, missing='error')
 
     # status variables
+    calibration_data = StatusVar(default=None)
 
     def __init__(self, config, **kwargs):
         super().__init__(config=config, **kwargs)
@@ -83,7 +86,7 @@ class ResistiveMagnetLogic(GenericLogic):
         # TODO: current protection or smth
         name = self._relay_logic.device_name()
         state = self._relay_logic.get_state(name)
-        measured_current = self._magnet.get_current_a()
+        self._last_current = self.get_current()
 
         if requested_current > 0:
             if state == 'positive':
@@ -107,15 +110,40 @@ class ResistiveMagnetLogic(GenericLogic):
             self._magnet.set_current_a(0.0)
 
     def get_current(self):
-        return self._magnet.get_current_a()
+        """Gets current from the power source emulating negative sign by checking the state of the relay"""
+        state = self._relay_logic.get_state(self._relay_logic.device_name())
+        if state == 'positive':
+            current = self._magnet.get_current_a()
+        elif state == 'negative':
+            current = -self._magnet.get_current_a()
+        return current
 
     def set_field(self, field):
         pass
 
     def get_field(self):
-        """Interpolates from calibration table"""
-        # np.interp(0.75, np.array([0, 1, 2]), np.array([2, 3, 4]))
-        pass
+        """Interpolates field value (in tesla) from the calibration table statusVar.
+        We will split calibration in two branches, bottom and top one"""
+
+        currents = self.calibration_data['current (A)']
+        fields = self.calibration_data['field (T)']
+
+        currents_bottom = currents[0:currents.size // 2 + 1]
+        currents_top = currents[currents.size//2:]
+
+        fields_bottom = fields[0:fields.size // 2 + 1]
+        fields_top = fields[fields.size//2:]
+
+        return [np.interp(self.get_current(), currents_bottom, fields_bottom),
+                np.interp(self.get_current(), np.flip(currents_top), np.flip(fields_top))]
+
+    def _get_branch(self):
+        """Helper function for the determination on which branch we are sitting"""
+        current = self.get_current()
+        if current > self._last_current:
+            self.log.info('We are on a bottom one')
+        elif current < self._last_current:
+            self.log.info('We are on a top branch')
 
     def output_on(self):
         self._magnet.output_on()
@@ -123,22 +151,14 @@ class ResistiveMagnetLogic(GenericLogic):
     def output_off(self):
         self._magnet.output_off()
 
-    def automatic_calibration(self, end_current, step_current, wait_s):
-        """Doing a loop over set of currents (in amperes), recording field values in the process"""
+    def automatic_calibration(self, start_current, end_current, step_current, wait_s):
+        """Doing a loop over set of currents (in amperes), recording field values in the process.
+            Calibration is performed from fully magnetized state aka maximal negative current."""
 
-        # Dirty hack with zero because floats..
-        # currents = np.concatenate([
-        #     np.arange(start_current, end_current + step_current, step_current),
-        #     np.arange(end_current - step_current, start_current, -step_current),
-        #     np.arange(start_current, -end_current - step_current, -step_current),
-        #     np.arange(-end_current, start_current, step_current),
-        #     [0]
-        # ])
+        steps_number = np.rint(abs(start_current - end_current) / step_current)
+        currents = np.linspace(start_current, start_current + step_current * steps_number, int(steps_number + 1))
 
-        currents = np.concatenate([
-            np.arange(-end_current, end_current + step_current, step_current),
-            np.arange(end_current - step_current, -end_current - step_current, -step_current)
-        ])
+        current_loop = np.concatenate([currents, -currents])
         currents[np.abs(currents) < 0.00001] = 0  # hack to fix dirty float output
 
         fields = np.zeros(currents.size)
@@ -157,8 +177,6 @@ class ResistiveMagnetLogic(GenericLogic):
         time.sleep(0.3)
         self.save_calibration()
 
-        # return np.vstack([currents, fields])
-
     def save_calibration(self):
         """
         :param string name_tag: postfix name tag for saved filename.
@@ -175,7 +193,8 @@ class ResistiveMagnetLogic(GenericLogic):
         # parameters['Pump wavelength (nm)'] = self._pump_wavelength_nm
 
         self._save_logic.save_data(self.calibration_data,
-                                   filepath=filepath
+                                   filepath=filepath,
+                                   filelabel='Magnet_calibration'
                                    )
 
         self.log.debug('Calibration saved to:\n{0}'.format(filepath))
@@ -184,6 +203,10 @@ class ResistiveMagnetLogic(GenericLogic):
         pass
 
     def load_calibration(self):
-        pass
+        """Reads calibration data from a file specified in configuration"""
+        calibration_table = np.genfromtxt(self._magnet_calibration_path).transpose()
+        self.calibration_data = dict({'current (A)': calibration_table[0],
+                                      'field (T)': calibration_table[1]
+                                      })
 
 
