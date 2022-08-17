@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+This is a dummy file for magnet a powersource. It emulates most of methods with some sleeps highjecked here and there.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -25,32 +26,27 @@ from core.configoption import ConfigOption
 from interface.process_control_interface import ProcessControlInterface
 
 
-class N5751AgilentPowerSource(Base, ProcessControlInterface):
-    """ Hardware module for power supply Agilent N5751 to for magnet control.
+class MagnetPowersourceDummy(Base, ProcessControlInterface):
+    """ Dummy for hardware module for power supply Agilent N5751 (and prob others) for magnet control.
 
     Example config :
-        n5751_agilent:
-            module.Class: 'magnet.agilent_N5751A.N5751AgilentPowerSource'
-            com_port_powersource: 'USB0::0x0957::0x0807::N5751A-US14A0528M::0::INSTR'
+        powersource_dummy:
+            module.Class: 'magnet.magnet_powersource_dymmy.MagnetPowersourceDummy'
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     _modclass = 'powersource'
-    _modtype = 'hardware'
+    _modtype = 'dummy'
 
-    _com_port_powersource = ConfigOption('com_port_powersource', missing='error')
-
-    # _voltage_min = ConfigOption('voltage_min', 0)
-    # _voltage_max = ConfigOption('voltage_max', 6)
-    # _current_max = ConfigOption('current_max', missing='error')
+    _voltage = 0.0
+    _current = 0.0
 
     def on_activate(self):
         """We will assume that we will always work in constant current mode,
         thus output voltage would be put to maximum (300 V) at start"""
         self.connect()
-        self._powersource_handle.query("VOLT 300; *OPC?")  # TODO: setvoltage
 
     def on_deactivate(self):
         self.disconnect()
@@ -58,41 +54,34 @@ class N5751AgilentPowerSource(Base, ProcessControlInterface):
     def connect(self):
         """Connect power source
         """
-
-        self.rm = visa.ResourceManager()  # when there is no argument - Keysight IVI backend is used
-        try:
-            self._powersource_handle = self.rm.open_resource(self._com_port_powersource,
-                                                             read_termination='\n'
-                                                             )
-            self.log.info(f"Powersource {self._powersource_handle.query('*IDN?')} is connected")
-        except:
-            self.log.warning('Cannot connect to powersource! Check ports and power on the device!')
+        time.sleep(1)
 
     def disconnect(self):
-        self.output_off()
-        self._powersource_handle.close()
+        time.sleep(0.5)
 
     def output_on(self):
         """Turn on output"""
-        self._powersource_handle.query('OUTP ON; *OPC?')
+        time.sleep(0.2)
 
     def output_off(self):
         """Turn off output
-        in the
         """
-        self._powersource_handle.query('OUTP OFF; *OPC?')
+        time.sleep(0.2)
 
     def get_voltage_v(self):
-        return float(self._powersource_handle.query('VOLT?'))
+        time.sleep(0.2)
+        return self._current
 
     def set_voltage_v(self, voltage_v=0):
-        self._powersource_handle.query(f'VOLT {voltage_v}; *OPC?')
+        self._voltage = voltage_v
 
     def get_current_a(self):
-        return float(self._powersource_handle.query('CURR?'))
+        time.sleep(0.2)
+        return self._current
 
     def set_current_a(self, current_a=0):
-        self._powersource_handle.query(f'CURR {current_a}; *OPC?')
+        time.sleep(0.01 * current_a)
+        self._current = current_a
 
     def _write(self, cmd):
         """ Function to write command to hardware"""
@@ -103,6 +92,7 @@ class N5751AgilentPowerSource(Base, ProcessControlInterface):
     def _query(self, cmd):
         """ Function to query hardware"""
         # return self._inst.query(cmd)
+        pass
 
     def set_control_value(self, value):
         """ Set control value, here heating power.
