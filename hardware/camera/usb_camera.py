@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Dummy implementation for camera_interface.
+Cheap aliexpress hayear camera connected via usb interface.
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,12 +22,13 @@ top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi
 
 import numpy as np
 import time
+import cv2
 from core.module import Base
 from core.configoption import ConfigOption
 from interface.camera_interface import CameraInterface
 
 
-class CameraDummy(Base, CameraInterface):
+class UsbCamera(Base, CameraInterface):
     """ Dummy hardware for camera interface
 
     Example config for copy-paste:
@@ -53,12 +54,13 @@ class CameraDummy(Base, CameraInterface):
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
-        self._resolution = eval(self._resolution)  # Dirty hack for string to tuple of int conversion
-        pass
+        # self._resolution = eval(self._resolution)  # Dirty hack for string to tuple of int conversion
+        self._camera_handle = cv2.VideoCapture(0)
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
         """
+        self._camera_handle.release()
         self.stop_acquisition()
 
     def get_name(self):
@@ -66,7 +68,8 @@ class CameraDummy(Base, CameraInterface):
 
         @return string: name for the camera
         """
-        return self._camera_name
+        # return self._camera_name
+        pass
 
     def get_size(self):
         """ Retrieve size of the image in pixel
@@ -120,8 +123,8 @@ class CameraDummy(Base, CameraInterface):
 
         Each pixel might be a float, integer or sub pixels
         """
-        data = np.random.random(self._resolution)*self._exposure*self._gain
-        return data.transpose()
+        _, data = self._camera_handle.read()
+        return data[:, :, 1]  # since this is BW camera we will use only one channel
 
     def set_exposure(self, exposure):
         """ Set the exposure time in seconds
@@ -157,7 +160,6 @@ class CameraDummy(Base, CameraInterface):
         @return float: exposure gain
         """
         return self._gain
-
 
     def get_ready_state(self):
         """ Is the camera ready for an acquisition ?

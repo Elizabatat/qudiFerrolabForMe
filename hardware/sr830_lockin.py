@@ -23,7 +23,7 @@ Copyright (c) the Qudi Developers. See the COPYRIGHT.txt file at the
 top-level directory of this distribution and at <https://github.com/Ulm-IQO/qudi/>
 """
 
-import visa
+import pyvisa
 import time
 import numpy as np
 
@@ -67,7 +67,7 @@ class Sr830LockIn(Base, SimpleDataInterface):
         Initialisation performed during activation of the module.
         """
 
-        self.rm = visa.ResourceManager()
+        self.rm = pyvisa.ResourceManager()
         try:
             self._lock_in_handle = self.rm.open_resource(self._com_port_lock_in,
                                                          baud_rate=9600,
