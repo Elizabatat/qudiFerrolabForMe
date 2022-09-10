@@ -2,6 +2,14 @@
 
 """
 Cheap aliexpress hayear camera connected via usb interface.
+Camera name ELP-USBGS720P02-SFV(5-50)
+
+This camera has a weird autoexposure settings:
+usb_elp_camera._camera_handle.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.75) - ON
+usb_elp_camera._camera_handle.set(cv2.CAP_PROP_AUTO_EXPOSURE,0.75) - OFF
+
+Exposure ones:
+usb_elp_camera._camera_handle.set(cv2.CAP_PROP_EXPOSURE,-1) seems it accept values from -13 to 0
 
 Qudi is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -54,8 +62,9 @@ class UsbCamera(Base, CameraInterface):
     def on_activate(self):
         """ Initialisation performed during activation of the module.
         """
-        # self._resolution = eval(self._resolution)  # Dirty hack for string to tuple of int conversion
         self._camera_handle = cv2.VideoCapture(0)
+        self._resolution = (self._camera_handle.get(cv2.CAP_PROP_FRAME_WIDTH), self._camera_handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self._resolution = tuple(map(int, self._resolution))  # convert resolution to integers
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
@@ -103,7 +112,7 @@ class UsbCamera(Base, CameraInterface):
             return False
         else:
             self._acquiring = True
-            time.sleep(float(self._exposure+10/1000))
+            time.sleep(float(100/1000))
             self._acquiring = False
             return True
 
@@ -114,7 +123,6 @@ class UsbCamera(Base, CameraInterface):
         """
         self._live = False
         self._acquiring = False
-
 
     def get_acquired_data(self):
         """ Return an array of last acquired image.
@@ -134,15 +142,14 @@ class UsbCamera(Base, CameraInterface):
         @return float: setted new exposure time
         """
         self._exposure = exposure
-        return self._exposure
+        self._camera_handle.set(cv2.CAP_PROP_EXPOSURE, exposure)
 
     def get_exposure(self):
         """ Get the exposure time in seconds
 
         @return float exposure time
         """
-        return self._exposure
-
+        return self._camera_handle.get(cv2.CAP_PROP_EXPOSURE)
 
     def set_gain(self, gain):
         """ Set the gain
