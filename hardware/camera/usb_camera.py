@@ -132,7 +132,8 @@ class UsbCamera(Base, CameraInterface):
         Each pixel might be a float, integer or sub pixels
         """
         _, data = self._camera_handle.read()
-        return data[:, :, 1]  # since this is BW camera we will use only one channel
+
+        return data[:,:,:] # since this is BW camera we will use only one channel
 
     def set_exposure(self, exposure):
         """ Set the exposure time in seconds
@@ -141,7 +142,7 @@ class UsbCamera(Base, CameraInterface):
 
         @return float: setted new exposure time
         """
-        self._exposure = exposure
+        self._exposure = exposure  # baka!
         self._camera_handle.set(cv2.CAP_PROP_EXPOSURE, exposure)
 
     def get_exposure(self):

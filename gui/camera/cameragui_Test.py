@@ -23,12 +23,10 @@ import os
 import pyqtgraph as pg
 
 from core.connector import Connector
-from gui.colordefs import QudiPalettePale as Palette
 from gui.guibase import GUIBase
 from gui.colordefs import ColorScaleInferno
 
 from qtpy import QtCore
-from qtpy import QtGui
 from qtpy import QtWidgets
 from qtpy import uic
 from gui.guiutils import ColorBar
@@ -36,6 +34,7 @@ from gui.guiutils import ColorBar
 import numpy as np
 
 import time
+
 
 class CameraSettingDialog(QtWidgets.QDialog):
     """ Create the SettingsDialog window, based on the corresponding *.ui file."""
@@ -58,7 +57,7 @@ class CameraWindow(QtWidgets.QMainWindow):
     def __init__(self):
         # Get the path to the *.ui file
         this_dir = os.path.dirname(__file__)
-        ui_file = os.path.join(this_dir, 'ui_camera.ui')
+        ui_file = os.path.join(this_dir, 'ui_camera_test_2.ui')
 
         # Load it
         super().__init__()
@@ -76,10 +75,12 @@ class CameraGUI(GUIBase):
     sigVideoStart = QtCore.Signal()
     sigVideoStop = QtCore.Signal()
     sigImageStart = QtCore.Signal()
-    sigImageStop = QtCore.Signal()
+    sigMeasurementStart = QtCore.Signal()
+    sigMeasurementStop = QtCore.Signal()
+    sigAverageStart = QtCore.Signal()
 
     _image = []
-
+    _diff_measure_image = []
     _logic = None
     _mw = None
 
@@ -95,12 +96,12 @@ class CameraGUI(GUIBase):
         self._logic = self.camera_logic()
         self._save_logic = self.savelogic()
 
-        # Windows
         self._mw = CameraWindow()
         self._mw.centralwidget.hide()
         self._mw.setDockNestingEnabled(True)
         self.initSettingsUI()
 
+        # Action buttons
         self._mw.start_video_Action.setEnabled(True)
         self._mw.start_video_Action.setChecked(self._logic.enabled)
         self._mw.start_video_Action.triggered.connect(self.start_video_clicked)
@@ -109,14 +110,55 @@ class CameraGUI(GUIBase):
         self._mw.start_image_Action.setChecked(self._logic.enabled)
         self._mw.start_image_Action.triggered.connect(self.start_image_clicked)
 
-        self._logic.sigUpdateDisplay.connect(self.update_data)
-        self._logic.sigAcquisitionFinished.connect(self.acquisition_finished)
-        self._logic.sigVideoFinished.connect(self.enable_start_image_action)
+        self._mw.start_average_Action.setEnabled(True)
+        self._mw.start_average_Action.setChecked(self._logic.enabled)
+        self._mw.start_average_Action.triggered.connect(self.start_average_clicked)
+
+        self._mw.start_measure_Action.setEnabled(True)
+        self._mw.start_measure_Action.setChecked(self._logic.enabled)
+        self._mw.start_measure_Action.triggered.connect(self.start_measure_clicked)
+
+        # Display update
+        self._logic.sigUpdateDisplay.connect(self.update_data, QtCore.Qt.QueuedConnection)
+        self._logic.sigUpdateMeasureDisplay.connect(self.update_measure_data, QtCore.Qt.QueuedConnection)
+        self._logic.sigUpdateImageDisplay.connect(self.update_image_data, QtCore.Qt.QueuedConnection)
+        self._logic.sigAcquisitionFinished.connect(self.acquisition_finished, QtCore.Qt.QueuedConnection)
+        self._logic.sigVideoFinished.connect(self.enable_start_image_action, QtCore.Qt.QueuedConnection)
+        self._logic.sigMeasureFinished.connect(self.enable_start_action)
 
         # starting the physical measurement
-        self.sigVideoStart.connect(self._logic.start_loop)
-        self.sigVideoStop.connect(self._logic.stop_loop)
-        self.sigImageStart.connect(self._logic.start_single_acquistion)
+        self.sigVideoStart.connect(self._logic.start_loop, QtCore.Qt.QueuedConnection)
+        self.sigVideoStop.connect(self._logic.stop_loop, QtCore.Qt.QueuedConnection)
+        self.sigImageStart.connect(self._logic.start_single_acquistion, QtCore.Qt.QueuedConnection)
+
+        self.sigMeasurementStart.connect(self._logic.start_voltage_measurements)
+        self.sigMeasurementStop.connect(self._logic.stop_voltage_measurements)
+
+        # self.sigMeasurementStop.connect(self._logic.stop_loop)
+        # test measure
+        self.sigAverageStart.connect(self._logic.measure_start_loop)
+        # self.sigMeasurementStop.connect(self._logic.measure_stop_loop)
+
+        # change value field
+        self._mw.average_SpinBox.lineEdit().returnPressed.connect(self.change_measure_value)
+
+        self._mw.label_start_voltage.setText('Stop voltage: ' + str(self._logic._start_volt) + 'V')
+        self._mw.start_voltage_SpinBox.lineEdit().returnPressed.connect(self.change_start_value)
+        self._mw.start_voltage_SpinBox.setRange(self._logic._minV, self._logic._maxV)
+
+        self._mw.label_stop_voltage.setText('Stop voltage: ' + str(self._logic._stop_volt) + 'V')
+        self._mw.stop_voltage_SpinBox.lineEdit().returnPressed.connect(self.change_stop_value)
+        self._mw.stop_voltage_SpinBox.setRange(self._logic._minV, self._logic._maxV)
+
+        self._mw.label_step.setText('Step: ' + str(self._logic._step_volt) + 'V')
+        self._mw.step_SpinBox.lineEdit().returnPressed.connect(self.change_step_value)
+        #self._mw.wait_time_DoubleSpinBox.valueChanged.connect(self.change_measure_value)
+
+        # Get measure image
+        diff_data_image = self._logic.get_diff_av_image()
+        self._diff_measure_image = pg.ImageItem(image=diff_data_image, axisOrder='row-major')
+        self._mw.image_PlotWidget_2.addItem(self._diff_measure_image)
+        self._mw.image_PlotWidget_2.setAspectLocked(True)
 
         # connect Settings action under Options menu
         self._mw.actionSettings.triggered.connect(self.menu_settings)
@@ -149,6 +191,9 @@ class CameraGUI(GUIBase):
         self._mw.xy_cb_ViewWidget.hideAxis('bottom')
         self._mw.xy_cb_ViewWidget.setLabel('left', 'Fluorescence', units='c')
         self._mw.xy_cb_ViewWidget.setMouseEnabled(x=False, y=False)
+
+        self._mw.label_default_average.setText('default_av = ' + str(self._logic._average))
+        # self._mw.label_default_wait_time.setText('default_wt = ' + str(self._logic._wait_time))
 
     def on_deactivate(self):
         """ Deinitialisation performed during deactivation of the module.
@@ -193,41 +238,123 @@ class CameraGUI(GUIBase):
         """ This method opens the settings menu. """
         self._sd.exec_()
 
+    def start_average_clicked(self):
+
+        self.sigAverageStart.emit()
+        self._mw.start_measure_Action.setDisabled(True)
+        self._mw.start_image_Action.setDisabled(True)
+        self._mw.start_video_Action.setDisabled(True)
+        self._mw.start_average_Action.setDisabled(True)
+
+    def start_measure_clicked(self):
+        self._mw.start_image_Action.setDisabled(True)
+        self._mw.start_video_Action.setDisabled(True)
+        self._mw.start_average_Action.setDisabled(True)
+
+        if self._logic.enabled == True:
+            self._mw.start_measure_Action.setText('Start Measure')
+            self._logic.volt_free = False
+            self.sigMeasurementStop.emit()
+        else:
+            self._mw.start_measure_Action.setText('Stop Measure')
+            self._logic.volt_free = True
+            self.sigMeasurementStart.emit()
+
+
     def start_image_clicked(self):
+
         self.sigImageStart.emit()
+        self._mw.start_average_Action.setDisabled(True)
+        self._mw.start_measure_Action.setDisabled(True)
         self._mw.start_image_Action.setDisabled(True)
         self._mw.start_video_Action.setDisabled(True)
 
     def acquisition_finished(self):
+
         self._mw.start_image_Action.setChecked(False)
         self._mw.start_image_Action.setDisabled(False)
+
+        self._mw.start_video_Action.setChecked(False)
         self._mw.start_video_Action.setDisabled(False)
+
+        self._mw.start_measure_Action.setChecked(False)
+        self._mw.start_measure_Action.setDisabled(False)
+
+        self._mw.start_average_Action.setChecked(False)
+        self._mw.start_average_Action.setDisabled(False)
 
     def start_video_clicked(self):
         """ Handling the Start button to stop and restart the counter.
         """
         self._mw.start_image_Action.setDisabled(True)
-        if self._logic.enabled:
-            self.sigVideoStop.emit()
-            self._mw.start_video_Action.setText('Start Video')
+        self._mw.start_measure_Action.setDisabled(True)
+        self._mw.start_average_Action.setDisabled(True)
 
+        if self._logic.enabled == True:
+            self._logic.free = False
+            self._mw.start_video_Action.setText('Start Video')
+            self.sigVideoStop.emit()
         else:
             self._mw.start_video_Action.setText('Stop Video')
+            self._logic.free = True
             self.sigVideoStart.emit()
+
+            #self._logic.sigStartVideo.emit()
 
     def enable_start_image_action(self):
         self._mw.start_image_Action.setEnabled(True)
+        self._mw.start_average_Action.setEnabled(True)
+        self._mw.start_measure_Action.setEnabled(True)
+
+    def enable_start_action(self):
+
+        # if self._logic.enabled == True:
+        #     self._mw.start_measure_Action.setText('Start Measure')
+        #     self._logic.volt_free = False
+        #     #self.sigMeasurementStop.emit()
+        # else:
+        #     self._mw.start_measure_Action.setText('Stop Measure')
+        #     self._logic.volt_free = True
+            #self.sigMeasurementStart.emit()
+        self._mw.start_measure_Action.setText('Start Measure')
+        self._logic.volt_free = False
+        self._logic.enabled = False
+        self._logic.sigAcquisitionFinished.emit()
+        self._mw.start_average_Action.setEnabled(True)
+        self._mw.start_image_Action.setEnabled(True)
+        self._mw.start_video_Action.setEnabled(True)
 
     def update_data(self):
+        """
+        Get the image data from the logic and print it on the window
+        """
+        if self._logic.free:
+            #self._logic.sigNewFrame.emit()
+            #raw_data_image = self._logic._last_image
+            raw_data_image = self._logic.continuous_get_data()
+            levels = (0., 1.)
+            # self._image.setImage(image=raw_data_image, levels=levels)
+            self._image.setImage(image=raw_data_image)
+            # self.update_xy_cb_range()
+            self._logic.sigUpdateDisplay.emit()
+
+    def update_image_data(self):
         """
         Get the image data from the logic and print it on the window
         """
         raw_data_image = self._logic.get_last_image()
         levels = (0., 1.)
         self._image.setImage(image=raw_data_image)
-        self.update_xy_cb_range()
-        # self._image.setImage(image=raw_data_image, levels=levels)
 
+    def update_measure_data(self):
+        """
+        Get the image data from the logic and print it on the window
+        """
+        diff_data_image = self._logic.get_diff_av_image()
+        levels = (0., 1.)
+        self._diff_measure_image.setImage(image=diff_data_image)
+        # self.update_xy_cb_range()
+        # self._image.setImage(image=raw_data_image, levels=levels)
 
     def updateView(self):
         """
@@ -235,7 +362,7 @@ class CameraGUI(GUIBase):
         """
         pass
 
-# color bar functions
+    # color bar functions
     def get_xy_cb_range(self):
         """ Determines the cb_min and cb_max values for the xy scan image
         """
@@ -300,7 +427,7 @@ class CameraGUI(GUIBase):
         self.refresh_xy_colorbar()
         self.refresh_xy_image()
 
-# save functions
+    # save functions
 
     def save_xy_scan_data(self):
         """ Run the save routine from the logic to save the xy confocal data."""
@@ -321,3 +448,19 @@ class CameraGUI(GUIBase):
 
         self._image.save(filename + '_raw.png')
 
+    def change_measure_value(self):
+        """Change average and wait time value"""
+        self._logic._average = self._mw.average_SpinBox.value()
+        self._mw.label_default_average.setText('default_av = ' + str(self._logic._average))
+
+    def change_start_value(self):
+        self._mw.label_start_voltage.setText('Start voltage: ' + str(self._mw.start_voltage_SpinBox.value()) + 'V')
+        self._logic._start_volt = self._mw.start_voltage_SpinBox.value()
+
+    def change_stop_value(self):
+        self._mw.label_stop_voltage.setText('Stop voltage: ' + str(self._mw.stop_voltage_SpinBox.value()) + 'V')
+        self._logic._stop_volt = self._mw.stop_voltage_SpinBox.value()
+
+    def change_step_value(self):
+        self._mw.label_step.setText('Step: ' + str(self._mw.step_SpinBox.value()) + 'V')
+        self._logic._step_volt = self._mw.step_SpinBox.value()
