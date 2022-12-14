@@ -151,7 +151,7 @@ class CameraLogic(GenericLogic):
             self._hardware.start_live_acquisition()
             self.sigUpdateDisplay.emit()
 
-    def measure_start_loop(self):
+    def measure_start_loop(self, v=0):
         """ Start averaging and subtracting loop."""
         timestamp = datetime.datetime.now()
         print("start" , timestamp )
@@ -189,10 +189,10 @@ class CameraLogic(GenericLogic):
         diff_av_image = _av_image - self._last_av_image
 
         self._diff_av_image = diff_av_image
-        self.save_xy_data(self.rgb2gray(self._diff_av_image), "diff", self._average)
+        self.save_xy_data(self.rgb2gray(self._diff_av_image), "diff", self._average,v)
 
         self._last_av_image = _av_image
-        self.save_xy_data(self.rgb2gray(self._last_av_image), "av", self._average)
+        self.save_xy_data(self.rgb2gray(self._last_av_image), "av", self._average,v)
 
         self.sigUpdateMeasureDisplay.emit()
         self.sigAcquisitionFinished.emit()
@@ -201,12 +201,15 @@ class CameraLogic(GenericLogic):
         """Start loop for measurement with voltage and averaging """
 
         self.enabled = True
-        #TO DO: add cykle for mantigora
+
         for i in range(self._start_volt, self._stop_volt, self._step_volt):
             if self.volt_free:
                 self._HV.do_loop(i)
-                time.sleep(1)
-                print("good")
+                #self.measure_start_loop(i)
+                time.sleep(10)
+
+
+        print("end")
 
         self.sigMeasureFinished.emit()
 

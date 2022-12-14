@@ -144,7 +144,7 @@ class UsbCamera(Base, CameraInterface):
                                      shape=(pData.height.value,
                                             pData.width.value,
                                             pData.BytesPerPixel))
-            print("good")
+            #print("good")
 
     Callbackfunc = ic.FRAMEREADYCALLBACK(FrameCallback)
 

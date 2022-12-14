@@ -99,15 +99,15 @@ class HighVoltageLogic(GenericLogic):
     def do_loop(self, volt):
         self._set_voltage = volt
         print(self._set_voltage)
-        #self.set_voltage(volt)
-        #self.update_voltage()
+        self.set_voltage(volt)
+        self.update_voltage()
         self.sigReader.emit()
 
 
     @QtCore.Slot()
     def reader(self):
         if self.free == True:
-            # print("good")
+
             self.do_get_IU()
             time.sleep(0.5)
             self.sigDataChanged.emit()

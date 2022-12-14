@@ -142,7 +142,7 @@ class CameraGUI(GUIBase):
         # change value field
         self._mw.average_SpinBox.lineEdit().returnPressed.connect(self.change_measure_value)
 
-        self._mw.label_start_voltage.setText('Stop voltage: ' + str(self._logic._start_volt) + 'V')
+        self._mw.label_start_voltage.setText('Start voltage: ' + str(self._logic._start_volt) + 'V')
         self._mw.start_voltage_SpinBox.lineEdit().returnPressed.connect(self.change_start_value)
         self._mw.start_voltage_SpinBox.setRange(self._logic._minV, self._logic._maxV)
 
@@ -152,6 +152,7 @@ class CameraGUI(GUIBase):
 
         self._mw.label_step.setText('Step: ' + str(self._logic._step_volt) + 'V')
         self._mw.step_SpinBox.lineEdit().returnPressed.connect(self.change_step_value)
+        self._mw.step_SpinBox.setRange(-100,100)
         #self._mw.wait_time_DoubleSpinBox.valueChanged.connect(self.change_measure_value)
 
         # Get measure image
